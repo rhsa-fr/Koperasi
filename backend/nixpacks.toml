@@ -1,0 +1,2 @@
+# File ini tidak aktif karena Railway menggunakan Dockerfile
+# Builder sudah diset ke "dockerfile" di railway.toml

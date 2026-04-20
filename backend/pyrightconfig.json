@@ -1,0 +1,6 @@
+{
+  "venvPath": "d:\\Magang\\Kop Sijam\\backend",
+  "venv": "venv",
+  "pythonVersion": "3.11",
+  "extraPaths": ["."]
+}
