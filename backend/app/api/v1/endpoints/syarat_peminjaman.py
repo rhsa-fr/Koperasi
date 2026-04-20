@@ -12,9 +12,7 @@ from app.schemas.syarat_peminjaman import (
     SyaratChecklistResponse
 )
 from app.schemas.common import PaginatedResponse, PaginationMeta, MessageResponse
-from app.core.permissions import (
-    get_current_user, require_permission, is_admin, is_admin_or_ketua
-)
+from app.core.permissions import get_current_user, require_permission
 from app.services import syarat_peminjaman_service
 
 router = APIRouter()
@@ -60,7 +58,7 @@ def get_syarat_list(
 @router.post("/master", response_model=SyaratPeminjamanResponse, status_code=status.HTTP_201_CREATED)
 def create_syarat(
     data: SyaratPeminjamanCreate,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("pinjaman", "update")),
     db: Session = Depends(get_db)
 ):
     """Create syarat peminjaman baru (admin only)"""
@@ -83,7 +81,7 @@ def get_syarat(
 def update_syarat(
     id_syarat: int,
     data: SyaratPeminjamanUpdate,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("pinjaman", "update")),
     db: Session = Depends(get_db)
 ):
     """Update syarat peminjaman (admin only)"""
@@ -94,7 +92,7 @@ def update_syarat(
 @router.delete("/master/{id_syarat}", response_model=MessageResponse)
 def delete_syarat(
     id_syarat: int,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("pinjaman", "update")),
     db: Session = Depends(get_db)
 ):
     """Delete syarat peminjaman (admin only)"""
@@ -154,7 +152,7 @@ def update_pinjaman_syarat(
 def verify_pinjaman_syarat(
     id_pinjaman_syarat: int,
     data: PinjamanSyaratVerify,
-    current_user: dict = Depends(is_admin_or_ketua),
+    current_user: dict = Depends(require_permission("pinjaman", "approve")),
     db: Session = Depends(get_db)
 ):
     """

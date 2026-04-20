@@ -12,7 +12,7 @@ from app.schemas.angsuran import (
     AngsuranScheduleResponse, AngsuranJatuhTempoResponse
 )
 from app.schemas.common import PaginatedResponse, PaginationMeta
-from app.core.permissions import get_current_user, is_bendahara
+from app.core.permissions import get_current_user, require_permission
 from app.services import angsuran_service
 
 router = APIRouter()
@@ -209,7 +209,7 @@ def get_angsuran(
 def bayar_angsuran(
     id_angsuran: int,
     data: AngsuranBayar,
-    current_user: dict = Depends(is_bendahara),
+    current_user: dict = Depends(require_permission("angsuran", "bayar")),
     db: Session = Depends(get_db)
 ):
     """Bayar angsuran"""

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { 
   Key, ShieldCheck, Lock, Unlock, Search, RefreshCw, 
   Settings, Loader2, AlertCircle, CheckCircle2, X,
-  Layout, Save, Shield
+  Layout, Save, Shield, ArrowRightLeft, ToggleLeft
 } from 'lucide-react'
 import { api } from '@/lib/axios'
 import { cn } from '@/lib/utils'
@@ -43,27 +43,55 @@ interface PermissionMatrix {
 // ============================================================================
 
 const MODULES = [
-  'users', 'anggota', 'profil_anggota', 'jenis_simpanan', 
-  'simpanan', 'pinjaman', 'angsuran', 'laporan', 'dashboard',
-  'audit', 'rbac', 'roles'
+  'dashboard', 'anggota', 'profil_anggota', 'jenis_simpanan', 
+  'simpanan', 'pinjaman', 'angsuran', 'laporan', 
+  'rbac', 'users', 'roles', 'menus', 'audit'
 ]
 
 const ACTIONS = [
-  'read', 'create', 'update', 'delete', 'export', 
-  'setor', 'tarik', 'bayar', 'approve', 'reject', 'verify'
+  'read', 'create', 'update', 'delete', 'activate', 'deactivate',
+  'export', 'setor', 'tarik', 'bayar', 'verify', 'manage'
 ]
 
 const HIDDEN_ACTIONS = ['approve', 'reject']
 const DISPLAY_ACTIONS = ACTIONS.filter(a => !HIDDEN_ACTIONS.includes(a))
 
 const ACTION_LABELS: Record<string, string> = {
-  read: 'Lihat', create: 'Tambah', update: 'Ubah', delete: 'Hapus', export: 'Ekspor',
-  setor: 'Setor', tarik: 'Tarik', bayar: 'Bayar', verify: 'Verifikasi'
+  read: 'Lihat',
+  create: 'Tambah',
+  update: 'Ubah',
+  delete: 'Hapus',
+  activate: 'Aktifkan',
+  deactivate: 'Nonaktifkan',
+  export: 'Ekspor',
+  setor: 'Setor',
+  tarik: 'Tarik',
+  bayar: 'Bayar',
+  verify: 'Verifikasi',
+  manage: 'Kelola'
+}
+
+const MODULE_LABELS: Record<string, string> = {
+  dashboard: 'Dashboard',
+  anggota: 'Data Anggota',
+  profil_anggota: 'Profil Anggota',
+  jenis_simpanan: 'Jenis Simpanan',
+  simpanan: 'Transaksi Simpanan',
+  pinjaman: 'Transaksi Pinjaman',
+  angsuran: 'Transaksi Angsuran',
+  laporan: 'Laporan',
+  rbac: 'Pengaturan Sistem',
+  users: 'Manajemen User',
+  roles: 'Manajemen Role',
+  menus: 'Manajemen Menu',
+  audit: 'Audit Log'
 }
 
 // ============================================================================
 // Main Page
 // ============================================================================
+
+const ADMIN_ONLY_RESOURCES = ['users', 'rbac', 'sidebar', 'menus', 'audit', 'settings', 'roles'];
 
 export default function RolesManagementPage() {
   const [roles, setRoles] = useState<Role[]>([])
@@ -319,19 +347,28 @@ export default function RolesManagementPage() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-surface-100 italic">
-                    {Object.keys(matrix).sort().map(m => (
+                  <tbody className="divide-y divide-surface-100">
+                    {Object.keys(matrix).sort()
+                      .filter(m => {
+                        // Jika bukan super_admin (ID 1), sembunyikan fitur administrator
+                        if (selectedRoleId !== 1) {
+                          return !ADMIN_ONLY_RESOURCES.includes(m);
+                        }
+                        return true;
+                      })
+                      .map(m => (
                       <tr key={m} className="hover:bg-surface-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-1.5 h-6 rounded-full bg-ink-800/10" />
-                            <span className="text-sm font-bold text-ink-800 capitalize">{m.replace('_', ' ')}</span>
+                            <span className="text-sm font-bold text-ink-800">
+                              {MODULE_LABELS[m] || m}
+                            </span>
                           </div>
                         </td>
                         {DISPLAY_ACTIONS.map(a => (
                           <td key={a} className="px-4 py-4 text-center">
                               {a === 'verify' ? (
-                                // Virtual Verification Column
                                 (matrix[m]?.['approve'] || matrix[m]?.['reject']) ? (
                                   <button
                                     disabled={saving || isReadOnly}
@@ -345,14 +382,12 @@ export default function RolesManagementPage() {
                                     )}
                                   >
                                     {((matrix[m]?.['approve']?.granted) || (matrix[m]?.['reject']?.granted)) ? (
-                                      <ShieldCheck className="w-5 h-5 animate-in zoom-in duration-300" />
+                                      <ShieldCheck className="w-5 h-5" />
                                     ) : (
                                       <Shield className="w-4 h-4" />
                                     )}
                                   </button>
-                                ) : (
-                                  <div className="w-10 h-10 mx-auto rounded-xl bg-surface-50/50 border border-dashed border-surface-200" />
-                                )
+                                ) : null
                               ) : matrix[m]?.[a] ? (
                                 <button
                                   disabled={saving || isReadOnly}
@@ -366,14 +401,12 @@ export default function RolesManagementPage() {
                                   )}
                                 >
                                   {matrix[m][a].granted ? (
-                                    <ShieldCheck className="w-5 h-5 animate-in zoom-in duration-300" />
+                                    <ShieldCheck className="w-5 h-5" />
                                   ) : (
                                     <Shield className="w-4 h-4" />
                                   )}
                                 </button>
-                              ) : (
-                                <div className="w-10 h-10 mx-auto rounded-xl bg-surface-50/50 border border-dashed border-surface-200" />
-                              )}
+                              ) : null}
                           </td>
                         ))}
                       </tr>

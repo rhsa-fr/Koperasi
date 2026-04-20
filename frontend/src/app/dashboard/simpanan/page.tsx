@@ -5,9 +5,10 @@ import {
   User, Search, RefreshCw, X, Loader2, AlertCircle,
   ChevronLeft, ChevronRight, ArrowDownCircle, ArrowUpCircle,
   PiggyBank, TrendingUp, TrendingDown, Wallet, FileText, Printer,
-  ReceiptText,
+  ReceiptText, Download,
 } from 'lucide-react'
 import { api } from '@/lib/axios'
+import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import Skeleton from '@/components/ui/Skeleton'
@@ -666,11 +667,20 @@ export default function SimpananPage() {
   const [modalTarik, setModalTarik] = useState(false)
   const [counts, setCounts]         = useState({ setor: 0, tarik: 0, semua: 0 })
   const [buktiSimpanan, setBuktiSimpanan] = useState<BuktiSimpananData | null>(null)
+  const [search, setSearch]           = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const { user, can } = useAuth()
-  const canSetor = can('simpanan', 'create')
-  const canTarik = can('simpanan', 'delete') // Penarikan dipetakan ke aks 'delete' (pengurangan saldo)
+  const canSetor = can('simpanan', 'setor')
+  const canTarik = can('simpanan', 'tarik')
+  const canExport = can('simpanan', 'export')
   const canTransaksi = canSetor || canTarik
   const LIMIT = 10
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 500)
+    return () => clearTimeout(t)
+  }, [search])
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError(null)
@@ -678,6 +688,7 @@ export default function SimpananPage() {
       const params = new URLSearchParams({
         skip: String((page - 1) * LIMIT), limit: String(LIMIT),
         ...(tipeFilter ? { tipe_transaksi: tipeFilter } : {}),
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
       })
       const res = await api.get<PaginatedResponse>(`/simpanan?${params}`)
       setData(res.data)
@@ -693,9 +704,28 @@ export default function SimpananPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat data.')
     } finally { setLoading(false) }
-  }, [page, tipeFilter])
+  }, [page, tipeFilter, debouncedSearch])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const handleExport = () => {
+    if (data.length === 0) return
+    const rows = data.map(s => ({
+      'No. Transaksi':  s.no_transaksi,
+      'Nama Anggota':   s.nama_anggota || '-',
+      'Jenis Simpanan': s.nama_jenis_simpanan || '-',
+      'Tipe':           s.tipe_transaksi.toUpperCase(),
+      'Nominal':        s.nominal,
+      'Saldo Akhir':    s.saldo_akhir,
+      'Tanggal':        s.tanggal_transaksi,
+      'Keterangan':     s.keterangan || '-',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 20 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 24 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Simpanan')
+    XLSX.writeFile(wb, `laporan_simpanan_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
 
   const STAT_CARDS = [
     { label: 'Total Setoran',   count: counts.setor, icon: TrendingUp,   iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500' },
@@ -713,25 +743,37 @@ export default function SimpananPage() {
           <p className="text-xs text-ink-300">Kelola setoran dan penarikan simpanan anggota</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Refresh Button */}
           <button onClick={fetchData}
             className="w-8 h-8 rounded-lg border border-surface-300 flex items-center justify-center text-ink-400 hover:bg-surface-100 transition-all">
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           </button>
+          
+          {/* Export Button (Standalone) */}
+          {canExport && (
+            <button onClick={handleExport} disabled={loading || data.length === 0}
+              className="h-8 px-3 rounded-lg text-xs font-semibold text-ink-600 border border-surface-300 bg-white hover:bg-surface-50 flex items-center gap-1.5 transition-all disabled:opacity-40">
+              <Download className="w-3.5 h-3.5" /> 
+              <span>Ekspor</span>
+            </button>
+          )}
+
+          {/* Transaction Buttons */}
           {canTransaksi && (
-            <>
-          {canTarik && (
-            <button onClick={() => setModalTarik(true)}
-              className="h-8 px-3 rounded-lg text-xs font-semibold text-red-500 border border-red-200 bg-red-50 hover:bg-red-100 flex items-center gap-1.5 transition-all">
-              <ArrowUpCircle className="w-3.5 h-3.5" /> Tarik
-            </button>
-          )}
-          {canSetor && (
-            <button onClick={() => setModalSetor(true)}
-              className="h-8 px-3 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 hover:opacity-90 transition-all bg-emerald-500">
-              <ArrowDownCircle className="w-3.5 h-3.5" /> Setor
-            </button>
-          )}
-            </>
+            <div className="flex items-center gap-2 border-l border-surface-200 pl-2 ml-1">
+              {canTarik && (
+                <button onClick={() => setModalTarik(true)}
+                  className="h-8 px-3 rounded-lg text-xs font-semibold text-red-500 border border-red-200 bg-red-50 hover:bg-red-100 flex items-center gap-1.5 transition-all">
+                  <ArrowUpCircle className="w-3.5 h-3.5" /> Tarik
+                </button>
+              )}
+              {canSetor && (
+                <button onClick={() => setModalSetor(true)}
+                  className="h-8 px-3 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 hover:opacity-90 transition-all bg-emerald-500 shadow-sm shadow-emerald-500/20">
+                  <ArrowDownCircle className="w-3.5 h-3.5" /> Setor
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -766,6 +808,19 @@ export default function SimpananPage() {
             </button>
           ))}
         </div>
+
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[240px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Cari nama atau no. transaksi..."
+            className="w-full h-9 pl-9 pr-4 rounded-xl border border-surface-300 text-xs text-ink-800 outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5] bg-surface-50 focus:bg-white transition-all placeholder:text-ink-200"
+          />
+        </div>
+
         <div className="ml-auto">
           <span className="text-xs text-ink-300">{meta.total} transaksi</span>
         </div>

@@ -98,20 +98,14 @@ export default function Sidebar() {
       section,
       label: SECTION_LABELS[section],
       items: navItems.filter((item) => {
-        // 1. Grouping logic
         if (item.section !== section) return false
 
-        // 2. ── Super Admin SPECIFIC View ──
-        // Super Admin only sees 'main' (Dashboard) and 'admin' (Administrator)
-        if (user?.role === 'super_admin') {
-          return section === 'main' || section === 'admin'
-        }
-
-        // 3. ── ADMINISTRATOR SECTION PROTECTION (FOR NON-SUPERADMIN) ──
-        // Only Super Admin can see menus in the 'admin' section
+        // 2. ── Restricted Sections for Non-Superadmins ──
+        // Only Super Admin can see menus in the 'admin' (Administrator) section
         if (section === 'admin' && user?.role !== 'super_admin') return false
 
-        // 4. Final permission sanity check for other roles
+        // 3. Final permission check
+        // Backend handles role-sidebar mapping, Frontend handles read permissions
         return can(item.resource, 'read')
       }),
     }))

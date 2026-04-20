@@ -12,7 +12,7 @@ from app.schemas.pinjaman import (
     PinjamanApprove, PinjamanReject, PinjamanCalculation
 )
 from app.schemas.common import PaginatedResponse, PaginationMeta
-from app.core.permissions import get_current_user, is_ketua
+from app.core.permissions import get_current_user, require_permission
 from app.services import pinjaman_service
 
 router = APIRouter()
@@ -124,7 +124,7 @@ def create_pinjaman(
 # ─── Static routes MUST be before /{id_pinjaman} ──────────────────────────────
 @router.get("/pending", response_model=List[PinjamanResponse])
 def get_pinjaman_pending(
-    current_user: dict = Depends(is_ketua),
+    current_user: dict = Depends(require_permission("pinjaman", "read")),
     db: Session = Depends(get_db)
 ):
     """Get semua pinjaman pending approval (ketua only)"""
@@ -245,7 +245,7 @@ def update_pinjaman(
 def approve_pinjaman(
     id_pinjaman: int,
     data: PinjamanApprove,
-    current_user: dict = Depends(is_ketua),
+    current_user: dict = Depends(require_permission("pinjaman", "approve")),
     db: Session = Depends(get_db)
 ):
     """Approve pinjaman (ketua only)"""
@@ -285,7 +285,7 @@ def approve_pinjaman(
 def reject_pinjaman(
     id_pinjaman: int,
     data: PinjamanReject,
-    current_user: dict = Depends(is_ketua),
+    current_user: dict = Depends(require_permission("pinjaman", "reject")),
     db: Session = Depends(get_db)
 ):
     """Reject pinjaman (ketua only)"""

@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.user import UserLogin
 from app.schemas.token import LoginResponse
 from app.core.security import verify_password, create_token_response
-from app.core.permissions import get_current_user
+from app.core.permissions import get_current_user, PERMISSIONS
 from app.core.exceptions import UnauthorizedException
 
 router = APIRouter()
@@ -36,10 +36,15 @@ def login(
         raise UnauthorizedException("User tidak aktif")
     
     # Generate token response
+    # Fetch permissions for the role from DB
+    from app.core.permissions import get_user_permissions_from_db
+    user_permissions = get_user_permissions_from_db(db, user.role.value)
+    
     return create_token_response(
         user_id=user.id_user,
         username=user.username,
-        role=user.role.value
+        role=user.role.value,
+        permissions=user_permissions
     )
 
 
@@ -58,6 +63,7 @@ def get_current_user_info(
         "id_user": user.id_user,
         "username": user.username,
         "role": user.role.value,
+        "permissions": current_user.get("permissions", {}),
         "is_active": user.is_active,
         "created_at": user.created_at
     }

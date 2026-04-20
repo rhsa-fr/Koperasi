@@ -103,7 +103,7 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def create_token_response(user_id: int, username: str, role: str) -> Dict[str, Any]:
+def create_token_response(user_id: int, username: str, role: str, permissions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Create a complete token response with access token and user info.
     
@@ -111,6 +111,7 @@ def create_token_response(user_id: int, username: str, role: str) -> Dict[str, A
         user_id: User ID
         username: Username
         role: User role (admin, ketua, bendahara)
+        permissions: Optional dictionary of permissions
         
     Returns:
         Dictionary containing access_token, token_type, and user info
@@ -119,7 +120,8 @@ def create_token_response(user_id: int, username: str, role: str) -> Dict[str, A
         response = create_token_response(
             user_id=user.id_user,
             username=user.username,
-            role=user.role
+            role=user.role,
+            permissions={"users": ["read"]}
         )
     """
     access_token = create_access_token(
@@ -137,5 +139,6 @@ def create_token_response(user_id: int, username: str, role: str) -> Dict[str, A
             "id": user_id,
             "username": username,
             "role": role
-        }
+        },
+        "permissions": permissions
     }

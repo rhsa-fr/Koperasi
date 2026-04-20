@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/axios'
+import * as XLSX from 'xlsx'
 import Toast, { ToastData } from '@/components/ui/Toast'
 import Skeleton from '@/components/ui/Skeleton'
 
@@ -396,8 +397,9 @@ function BuktiPembayaran({ bukti, onClose }: { bukti: BuktiData; onClose: () => 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AngsuranPage() {
-  const { user, can } = useAuth()
-  const isBendahara = can('angsuran', 'update') || can('angsuran', 'create')
+  const { can } = useAuth()
+  const canBayar = can('angsuran', 'bayar')
+  const canExport = can('angsuran', 'export')
 
   // ── Filter Bulan & Tahun ─────────────────────────────────────────────────
   const nowYM = currentYM()
@@ -494,6 +496,26 @@ export default function AngsuranPage() {
     setBukti(b)
     showToast('Pembayaran berhasil dicatat')
     load()
+  }
+
+  const handleExport = () => {
+    if (list.length === 0) return
+    const rows = list.map(a => ({
+      'No. Angsuran':  a.no_angsuran,
+      'No. Pinjaman':  a.no_pinjaman,
+      'Nama Anggota':  a.nama_anggota || '-',
+      'Jatuh Tempo':   a.tanggal_jatuh_tempo,
+      'Nominal':       a.nominal_angsuran,
+      'Denda':         a.denda || 0,
+      'Total Bayar':   a.total_bayar || a.nominal_angsuran,
+      'Status':        a.status,
+      'Tgl. Bayar':    a.tanggal_bayar || '-',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Angsuran')
+    XLSX.writeFile(wb, `laporan_angsuran_${filterTahun}_${filterBulan}.xlsx`)
   }
 
   // Summary counts dari data yang sudah di-load
@@ -634,6 +656,18 @@ export default function AngsuranPage() {
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
+                {/* Export Button */}
+                {list.length > 0 && (
+                  <button
+                    onClick={handleExport}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-surface-300 text-ink-500 hover:bg-surface-100 disabled:opacity-40 transition-colors"
+                    title="Ekspor Excel"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline text-xs font-medium">Ekspor</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -723,7 +757,7 @@ export default function AngsuranPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             {/* Bayar — hanya untuk belum_bayar / terlambat */}
-                            {isBendahara && a.status !== 'lunas' && (
+                            {canBayar && a.status !== 'lunas' && (
                               <button
                                 onClick={() => setSelected(a)}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent-600 text-white text-[10px] font-medium hover:bg-accent-700 transition-colors whitespace-nowrap"

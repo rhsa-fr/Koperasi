@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.setting import KoperasiSetting
 from app.schemas.setting import SettingUpdate, SettingResponse
-from app.core.permissions import get_current_user, is_admin
+from app.core.permissions import get_current_user, require_permission
+from fastapi import HTTPException
 
 router = APIRouter()
 
@@ -37,14 +38,10 @@ def get_setting(
 @router.put("", response_model=SettingResponse)
 def update_setting(
     data: SettingUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission("rbac", "update")),
     db: Session = Depends(get_db)
 ):
     """Update koperasi setting (admin only)"""
-    # Check admin permission
-    if not is_admin(current_user):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Hanya admin yang dapat mengubah setting")
     
     setting = db.query(KoperasiSetting).first()
     

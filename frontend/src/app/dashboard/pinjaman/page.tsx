@@ -72,7 +72,7 @@ export default function PinjamanPage() {
   // ✅ Izin dinamis — mendukung RBAC
   const { user, can } = useAuth()
   const canBuat       = can('pinjaman', 'create')
-  const canVerifikasi = can('pinjaman', 'update') || can('pinjaman', 'approve') // Mendukung aksi update atau approve
+  const canVerifikasi = can('pinjaman', 'approve')
 
   const LIMIT = 10
 

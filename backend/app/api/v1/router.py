@@ -25,6 +25,8 @@ from app.api.v1.endpoints import (
     angsuran,
     syarat_peminjaman,
     setting,
+    roles,
+    sidebar,
 )
 
 router = APIRouter()
@@ -36,4 +38,6 @@ router.include_router(simpanan.router,          prefix="/simpanan",          tag
 router.include_router(pinjaman.router,          prefix="/pinjaman",          tags=["Pinjaman"])
 router.include_router(angsuran.router,          prefix="/angsuran",          tags=["Angsuran"])
 router.include_router(syarat_peminjaman.router, prefix="/syarat-peminjaman", tags=["Syarat Peminjaman"])
-router.include_router(setting.router,           prefix="/setting",          tags=["Setting"])
+router.include_router(setting.router,           prefix="/setting",           tags=["Setting"])
+router.include_router(roles.router,             prefix="/roles",             tags=["Roles & RBAC"])
+router.include_router(sidebar.router,           prefix="/sidebar",           tags=["Sidebar Management"])

@@ -8,7 +8,7 @@ from app.schemas.role import (
     MenuResponse, RoleMenuResponse
 )
 from app.core.permissions import (
-    get_current_user, require_role, is_protected_role, can_modify_role, can_delete_role, log_audit_action
+    get_current_user, require_permission, is_protected_role, can_modify_role, can_delete_role, log_audit_action
 )
 
 router = APIRouter()
@@ -27,7 +27,7 @@ def get_all_menus(
 def get_role_permissions(
     role_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin"]))
+    current_user: dict = Depends(require_permission("roles", "read"))
 ):
     """Get permissions assigned to a specific role."""
     permissions = db.query(MasterMenu).join(
@@ -43,7 +43,7 @@ def update_role_permissions(
     role_id: int,
     data: dict, # Format: {"permissions": [{"menu": "users", "actions": ["read", "create"]}]}
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin"]))
+    current_user: dict = Depends(require_permission("roles", "update"))
 ):
     """Update permissions for a role (Sync approach)."""
     # 1. Clear existing permissions for this role
@@ -86,7 +86,7 @@ def update_role_permissions(
 def create_role(
     role_data: RoleCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin"]))
+    current_user: dict = Depends(require_permission("roles", "create"))
 ):
     """Create a new role (superadmin only)."""
     # Check if role already exists
@@ -142,7 +142,7 @@ def update_role(
     role_id: int,
     role_data: RoleUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin", "admin"]))
+    current_user: dict = Depends(require_permission("roles", "update"))
 ):
     """Update a role."""
     role = db.query(MasterRole).filter(MasterRole.id_role == role_id).first()
@@ -181,7 +181,7 @@ def update_role(
 def delete_role(
     role_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin"]))
+    current_user: dict = Depends(require_permission("roles", "delete"))
 ):
     """Delete a role (superadmin only)."""
     role = db.query(MasterRole).filter(MasterRole.id_role == role_id).first()
@@ -218,7 +218,7 @@ def assign_role_to_user(
     role_id: int,
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin", "admin"]))
+    current_user: dict = Depends(require_permission("roles", "update"))
 ):
     """Assign role to user."""
     from app.models.user import User
@@ -262,7 +262,7 @@ def get_audit_logs(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role(["super_admin"]))
+    current_user: dict = Depends(require_permission("audit", "read"))
 ):
     """Get audit logs (superadmin only)."""
     logs = db.query(AuditLog).offset(skip).limit(limit).all()

@@ -9,6 +9,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.core.security import decode_access_token
+from app.models.role import MasterRole, MasterMenu, MasterRoleMenu
 
 
 security = HTTPBearer()
@@ -18,6 +19,22 @@ security = HTTPBearer()
 # PERMISSION MATRIX - Role-Based Access Control
 # ============================================================================
 PERMISSIONS = {
+    "super_admin": {
+        "users": ["create", "read", "update", "delete", "activate", "deactivate"],
+        "anggota": ["create", "read", "update", "delete", "export"],
+        "profil_anggota": ["create", "read", "update", "delete"],
+        "jenis_simpanan": ["create", "read", "update", "delete"],
+        "simpanan": ["create", "read", "update", "delete", "setor", "tarik", "export"],
+        "pinjaman": ["create", "read", "update", "delete", "approve", "reject", "export"],
+        "angsuran": ["create", "read", "update", "delete", "bayar", "export"],
+        "laporan": ["read", "export"],
+        "dashboard": ["read"],
+        "rbac": ["create", "read", "update", "delete"],
+        "sidebar": ["create", "read", "update", "delete"],
+        "menus": ["create", "read", "update", "delete"],
+        "audit": ["read", "export"],
+        "roles": ["create", "read", "update", "delete", "manage"],
+    },
     "admin": {
         "users": ["create", "read", "update", "delete", "activate", "deactivate"],
         "anggota": ["create", "read", "update", "delete", "export"],
@@ -28,26 +45,27 @@ PERMISSIONS = {
         "angsuran": ["create", "read", "update", "delete", "bayar", "export"],
         "laporan": ["read", "export"],
         "dashboard": ["read"],
+        "roles": ["read"],
     },
     "ketua": {
-        "users": ["read"],  # Hanya bisa lihat user
+        "users": ["read"],
         "anggota": ["read", "export"],
         "profil_anggota": ["read"],
         "jenis_simpanan": ["read"],
         "simpanan": ["read", "export"],
-        "pinjaman": ["read", "approve", "reject", "export"],  # Ketua approve/reject pinjaman
+        "pinjaman": ["read", "approve", "reject", "export"],
         "angsuran": ["read", "export"],
         "laporan": ["read", "export"],
         "dashboard": ["read"],
     },
     "bendahara": {
-        "users": [],  # Tidak bisa akses users
+        "users": [],
         "anggota": ["read"],
         "profil_anggota": ["read"],
         "jenis_simpanan": ["read"],
-        "simpanan": ["create", "read", "setor", "tarik", "export"],  # Bendahara kelola simpanan
-        "pinjaman": ["create", "read", "export"],  # Bendahara bisa input pinjaman
-        "angsuran": ["create", "read", "bayar", "export"],  # Bendahara bayar angsuran
+        "simpanan": ["create", "read", "setor", "tarik", "export"],
+        "pinjaman": ["create", "read", "export"],
+        "angsuran": ["create", "read", "bayar", "export"],
         "laporan": ["read"],
         "dashboard": ["read"],
     },
@@ -58,25 +76,46 @@ PERMISSIONS = {
 # HELPER FUNCTIONS
 # ============================================================================
 
-def has_permission(user_role: str, resource: str, action: str) -> bool:
+def has_permission(current_user: dict, resource: str, action: str) -> bool:
     """
-    Check if user role has permission for specific action on a resource.
+    Check if current user has permission for specific action on a resource.
     
     Args:
-        user_role: User's role (admin, ketua, bendahara)
+        current_user: User dictionary from get_current_user
         resource: Resource name (users, anggota, simpanan, etc.)
         action: Action to perform (create, read, update, delete, etc.)
         
     Returns:
         True if user has permission, False otherwise
     """
-    if user_role not in PERMISSIONS:
+    # Super Admin has all permissions
+    if current_user.get("role") == "super_admin":
+        return True
+        
+    permissions = current_user.get("permissions", {})
+    if resource not in permissions:
         return False
     
-    if resource not in PERMISSIONS[user_role]:
-        return False
+    return action in permissions[resource]
+
+
+def get_user_permissions_from_db(db: Session, role_name: str) -> dict:
+    """Fetch permissions for a role from master_role_menu table."""
+    results = db.query(MasterMenu.menu, MasterMenu.action).join(
+        MasterRoleMenu, MasterMenu.id_permission == MasterRoleMenu.permission_id
+    ).join(
+        MasterRole, MasterRoleMenu.role_id == MasterRole.id_role
+    ).filter(
+        MasterRole.name == role_name
+    ).all()
     
-    return action in PERMISSIONS[user_role][resource]
+    permissions = {}
+    for menu, action in results:
+        if menu not in permissions:
+            permissions[menu] = []
+        permissions[menu].append(action)
+        
+    return permissions
 
 
 def check_permission(user_role: str, resource: str, action: str) -> None:
@@ -125,161 +164,42 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    role = payload.get("role")
+    
+    # ── KEY CHANGE: Fetch latest permissions from DB ──
+    # This makes the RBAC system dynamic
+    permissions = get_user_permissions_from_db(db, role)
+    
     return {
         "id": int(payload.get("sub")),
         "username": payload.get("username"),
-        "role": payload.get("role")
+        "role": role,
+        "permissions": permissions
     }
-
-
-# ============================================================================
-# ROLE-BASED DEPENDENCIES
-# ============================================================================
-
-class RoleChecker:
-    """
-    Dependency class to check if user has required role(s).
-    
-    Usage:
-        @router.get("/admin-only")
-        def admin_endpoint(user = Depends(RoleChecker(["admin"]))):
-            return {"message": "Admin access"}
-    """
-    
-    def __init__(self, allowed_roles: List[str]):
-        self.allowed_roles = allowed_roles
-    
-    def __call__(
-        self, 
-        credentials: HTTPAuthorizationCredentials = Depends(security), 
-        db: Session = Depends(get_db)
-    ):
-        token = credentials.credentials
-        payload = decode_access_token(token)
-        
-        if not payload:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        user_role = payload.get("role")
-        
-        if user_role not in self.allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission denied. Required roles: {', '.join(self.allowed_roles)}",
-            )
-        
-        return {
-            "id": int(payload.get("sub")),
-            "username": payload.get("username"),
-            "role": user_role
-        }
 
 
 class PermissionChecker:
     """
     Dependency class to check if user has specific permission.
-    
-    Usage:
-        @router.post("/pinjaman")
-        def create_pinjaman(
-            user = Depends(PermissionChecker("pinjaman", "create"))
-        ):
-            return {"message": "Pinjaman created"}
     """
-    
     def __init__(self, resource: str, action: str):
         self.resource = resource
         self.action = action
     
     def __call__(self, current_user: dict = Depends(get_current_user)):
-        check_permission(current_user["role"], self.resource, self.action)
+        if not has_permission(current_user, self.resource, self.action):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Izin ditolak. Role '{current_user['role']}' tidak memiliki akses '{self.action}' pada '{self.resource}'",
+            )
         return current_user
-
-
-# ============================================================================
-# CONVENIENCE FUNCTIONS
-# ============================================================================
-
-def require_role(allowed_roles: List[str]):
-    """
-    Factory function to create RoleChecker dependency.
-    
-    Usage:
-        @router.post("/pinjaman/{id}/approve")
-        def approve_pinjaman(user = Depends(require_role(["ketua"]))):
-            pass
-    """
-    return RoleChecker(allowed_roles)
 
 
 def require_permission(resource: str, action: str):
     """
-    Factory function to create PermissionChecker dependency.
-    
-    Usage:
-        @router.post("/pinjaman")
-        def create_pinjaman(user = Depends(require_permission("pinjaman", "create"))):
-            pass
+    Factory function for PermissionChecker.
     """
     return PermissionChecker(resource, action)
-
-
-# ============================================================================
-# SPECIFIC ROLE CHECKERS
-# ============================================================================
-
-def is_admin(current_user: dict = Depends(get_current_user)) -> dict:
-    """Check if current user is admin."""
-    if current_user["role"] != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-    return current_user
-
-
-def is_ketua(current_user: dict = Depends(get_current_user)) -> dict:
-    """Check if current user is ketua."""
-    if current_user["role"] != "ketua":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ketua access required",
-        )
-    return current_user
-
-
-def is_bendahara(current_user: dict = Depends(get_current_user)) -> dict:
-    """Check if current user is bendahara."""
-    if current_user["role"] != "bendahara":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bendahara access required",
-        )
-    return current_user
-
-
-def is_admin_or_ketua(current_user: dict = Depends(get_current_user)) -> dict:
-    """Check if current user is admin or ketua."""
-    if current_user["role"] not in ["admin", "ketua"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin or Ketua access required",
-        )
-    return current_user
-
-
-def is_admin_or_bendahara(current_user: dict = Depends(get_current_user)) -> dict:
-    """Check if current user is admin or bendahara."""
-    if current_user["role"] not in ["admin", "bendahara"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin or Bendahara access required",
-        )
-    return current_user
 
 
 # ============================================================================
@@ -338,3 +258,55 @@ def get_user_permissions(user_role: str) -> dict:
         Dict of resources and their allowed actions
     """
     return PERMISSIONS.get(user_role, {})
+
+
+# ============================================================================
+# NEW RBAC & AUDIT HELPERS
+# ============================================================================
+
+def is_protected_role(role_name: str) -> bool:
+    """System roles that cannot be deleted or modified by normal admins."""
+    return role_name.lower() in ["super_admin", "admin", "ketua", "bendahara"]
+
+
+def can_modify_role(user_role: str, target_role: str) -> bool:
+    """Logic to check if user_role can modify target_role."""
+    if user_role == "super_admin":
+        return True
+    if user_role == "admin":
+        # Admin can only modify non-protected roles (if any)
+        return not is_protected_role(target_role)
+    return False
+
+
+def can_delete_role(user_role: str, target_role: str) -> bool:
+    """Logic to check if user_role can delete target_role."""
+    if user_role == "super_admin":
+        # Even super_admin shouldn't delete the super_admin role itself
+        return target_role != "super_admin"
+    return False
+
+
+def log_audit_action(user_id: int, username: str, role: str, action: str, resource: str, target_id: int = None, details: dict = None):
+    """Log an action to the audit_log table."""
+    from app.database import SessionLocal
+    from app.models.role import AuditLog
+    
+    db = SessionLocal()
+    try:
+        db_log = AuditLog(
+            user_id=user_id,
+            username=username,
+            role=role,
+            action=action,
+            resource=resource,
+            target_id=target_id,
+            details=details
+        )
+        db.add(db_log)
+        db.commit()
+    except Exception as e:
+        print(f"❌ FAILED TO LOG AUDIT ACTION: {e}")
+        db.rollback()
+    finally:
+        db.close()

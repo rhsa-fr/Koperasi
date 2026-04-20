@@ -35,6 +35,7 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: dict = Field(..., description="User information")
+    permissions: Optional[dict] = Field(None, description="Detailed permissions for the user role")
 
 
 class RefreshTokenRequest(BaseModel):

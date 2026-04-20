@@ -210,7 +210,7 @@ export default function UsersManagementPage() {
         {[
           { label: 'Total User', value: total, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'User Aktif', value: users.filter(u => u.is_active).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Menunggu Review', value: 0, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'User Non-Aktif', value: users.filter(u => !u.is_active).length, icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-4 rounded-2xl border border-surface-300 flex items-center gap-4">
             <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", stat.bg)}>

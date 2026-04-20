@@ -143,10 +143,13 @@ def get_simpanan_list(
     id_jenis_simpanan: Optional[int] = None,
     tipe_transaksi: Optional[str] = None,
     start_date: Optional[date] = None,
-    end_date: Optional[date] = None
+    end_date: Optional[date] = None,
+    search: Optional[str] = None
 ) -> tuple[List[Simpanan], int]:
-    """Get list simpanan dengan filter"""
-    query = db.query(Simpanan)
+    """Get list simpanan dengan filter dan pencarian"""
+    from sqlalchemy import or_
+    
+    query = db.query(Simpanan).join(Anggota, Simpanan.id_anggota == Anggota.id_anggota)
     
     if id_anggota:
         query = query.filter(Simpanan.id_anggota == id_anggota)
@@ -162,6 +165,15 @@ def get_simpanan_list(
     
     if end_date:
         query = query.filter(Simpanan.tanggal_transaksi <= end_date)
+        
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            or_(
+                Simpanan.no_transaksi.ilike(search_filter),
+                Anggota.nama_lengkap.ilike(search_filter)
+            )
+        )
     
     total = query.count()
     simpanan_list = query.order_by(Simpanan.created_at.desc()).offset(skip).limit(limit).all()

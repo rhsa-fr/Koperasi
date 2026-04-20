@@ -10,6 +10,7 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
+    SUPER_ADMIN = "super_admin"
     ADMIN     = "admin"
     KETUA     = "ketua"
     BENDAHARA = "bendahara"

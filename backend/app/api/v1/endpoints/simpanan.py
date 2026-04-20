@@ -8,7 +8,7 @@ from typing import List, Optional
 from datetime import date
 
 from app.database import get_db
-from app.core.permissions import get_current_user, is_admin
+from app.core.permissions import get_current_user, require_permission
 from app.models.simpanan import Simpanan
 from app.models.jenis_simpanan import JenisSimpanan
 from app.schemas.anggota import (
@@ -85,7 +85,7 @@ def get_jenis_simpanan(
 @router.post("/jenis", response_model=JenisSimpananResponse, status_code=status.HTTP_201_CREATED)
 def create_jenis_simpanan(
     data: JenisSimpananCreate,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("jenis_simpanan", "create")),
     db: Session = Depends(get_db),
 ):
     """Tambah jenis simpanan baru (admin only)"""
@@ -135,7 +135,7 @@ def get_jenis_simpanan_by_id(
 def update_jenis_simpanan(
     id_jenis: int,
     data: JenisSimpananUpdate,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("jenis_simpanan", "update")),
     db: Session = Depends(get_db),
 ):
     """Update jenis simpanan (admin only)"""
@@ -175,7 +175,7 @@ def update_jenis_simpanan(
 @router.delete("/jenis/{id_jenis}", response_model=MessageResponse)
 def delete_jenis_simpanan(
     id_jenis: int,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("jenis_simpanan", "delete")),
     db: Session = Depends(get_db),
 ):
     """
@@ -210,7 +210,7 @@ def delete_jenis_simpanan(
 @router.patch("/jenis/{id_jenis}/toggle", response_model=JenisSimpananResponse)
 def toggle_jenis_simpanan(
     id_jenis: int,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("jenis_simpanan", "update")),
     db: Session = Depends(get_db),
 ):
     """Toggle status aktif jenis simpanan (admin only)"""
@@ -239,6 +239,7 @@ def get_simpanan_list(
     tipe_transaksi: Optional[str] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    search: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -252,6 +253,7 @@ def get_simpanan_list(
         tipe_transaksi=tipe_transaksi,
         start_date=start_date,
         end_date=end_date,
+        search=search,
     )
     page = (skip // limit) + 1 if limit > 0 else 1
     total_pages = (total + limit - 1) // limit if limit > 0 else 1

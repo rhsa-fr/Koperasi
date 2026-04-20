@@ -10,7 +10,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserChangePassword
 from app.schemas.common import PaginatedResponse, PaginationMeta, MessageResponse
 from app.core.security import hash_password, verify_password
-from app.core.permissions import get_current_user, is_admin
+from app.core.permissions import get_current_user, require_permission
 from app.core.exceptions import NotFoundException, ConflictException, BadRequestException
 
 router = APIRouter()
@@ -20,7 +20,7 @@ router = APIRouter()
 def get_users(
     skip: int = 0,
     limit: int = 10,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("users", "read")),
     db: Session = Depends(get_db)
 ):
     """Get list users (admin only)"""
@@ -45,7 +45,7 @@ def get_users(
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     data: UserCreate,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("users", "create")),
     db: Session = Depends(get_db)
 ):
     """Create user baru (admin only)"""
@@ -75,7 +75,7 @@ def create_user(
 @router.get("/{id_user}", response_model=UserResponse)
 def get_user(
     id_user: int,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("users", "read")),
     db: Session = Depends(get_db)
 ):
     """Get user by ID (admin only)"""
@@ -90,7 +90,7 @@ def get_user(
 def update_user(
     id_user: int,
     data: UserUpdate,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("users", "update")),
     db: Session = Depends(get_db)
 ):
     """Update user (admin only)"""
@@ -130,7 +130,7 @@ def update_user(
 @router.delete("/{id_user}", response_model=MessageResponse)
 def delete_user(
     id_user: int,
-    current_user: dict = Depends(is_admin),
+    current_user: dict = Depends(require_permission("users", "delete")),
     db: Session = Depends(get_db)
 ):
     """Delete user (admin only)"""

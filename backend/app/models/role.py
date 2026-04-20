@@ -16,7 +16,7 @@ class MasterRole(Base):
                         onupdate=func.current_timestamp())
 
     # Relationships
-    users = relationship("User", back_populates="role_detail")
+    # users = relationship("User", back_populates="role_detail")
     menus = relationship("MasterRoleMenu", back_populates="role", cascade="all, delete-orphan")
 
     def __repr__(self):

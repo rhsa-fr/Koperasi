@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db
 from app.models.sidebar import MasterSidebar
 from app.schemas.sidebar import SidebarCreate, SidebarUpdate, SidebarResponse
-from app.core.permissions import get_current_user, require_role, log_audit_action
+from app.core.permissions import get_current_user, require_permission, log_audit_action
 
 router = APIRouter()
 
@@ -21,9 +21,9 @@ def get_sidebar_menus(
     actual_role_id = role_id
     from app.models.role import MasterRole
     
-    # ── Super Admin PROTECTED Role (Permanent Bypass) ──
-    if (current_user and current_user.get("role") == "super_admin") or (role_id == 1):
-        return query.order_by(MasterSidebar.order_weight.asc()).all()
+    # ── Super Admin Management View Bypass ──
+    # Note: We removed the display bypass so super_admin respects database mapping 
+    # for the regular sidebar view. The /manage endpoint is used for full admin access.
 
     print(f"DEBUG: Sidebar request for role_id={role_id}, current_user_role={current_user.get('role') if current_user else 'None'}")
     if actual_role_id is None:
@@ -43,7 +43,7 @@ def get_sidebar_menus(
 @router.get("/role/{role_id}", response_model=List[int])
 def get_role_sidebar_ids(
     role_id: int,
-    current_user: dict = Depends(require_role(["super_admin"])),
+    current_user: dict = Depends(require_permission("sidebar", "read")),
     db: Session = Depends(get_db)
 ):
     """Get list of sidebar IDs mapped to a role"""
@@ -55,7 +55,7 @@ def get_role_sidebar_ids(
 def update_role_sidebar(
     role_id: int,
     sidebar_ids: List[int],
-    current_user: dict = Depends(require_role(["super_admin"])),
+    current_user: dict = Depends(require_permission("sidebar", "update")),
     db: Session = Depends(get_db)
 ):
     """Update sidebar visibility mapping for a role"""
@@ -85,7 +85,7 @@ def update_role_sidebar(
 
 @router.get("/manage", response_model=List[SidebarResponse])
 def get_all_menus(
-    current_user: dict = Depends(require_role(["super_admin"])),
+    current_user: dict = Depends(require_permission("sidebar", "read")),
     db: Session = Depends(get_db)
 ):
     """Get all sidebar menus for management (Superadmin only)"""
@@ -94,7 +94,7 @@ def get_all_menus(
 @router.post("", response_model=SidebarResponse)
 def create_menu(
     data: SidebarCreate,
-    current_user: dict = Depends(require_role(["super_admin"])),
+    current_user: dict = Depends(require_permission("sidebar", "update")),
     db: Session = Depends(get_db)
 ):
     """Add new menu (Superadmin only)"""
@@ -120,7 +120,7 @@ def create_menu(
 def update_menu(
     id_sidebar: int,
     data: SidebarUpdate,
-    current_user: dict = Depends(require_role(["super_admin"])),
+    current_user: dict = Depends(require_permission("sidebar", "update")),
     db: Session = Depends(get_db)
 ):
     """Update menu (Superadmin only)"""
@@ -151,7 +151,7 @@ def update_menu(
 @router.delete("/{id_sidebar}")
 def delete_menu(
     id_sidebar: int,
-    current_user: dict = Depends(require_role(["super_admin"])),
+    current_user: dict = Depends(require_permission("sidebar", "update")),
     db: Session = Depends(get_db)
 ):
     """Delete menu (Superadmin only)"""
