@@ -1,12 +1,15 @@
 'use client'
 
-import { Bell, Search, ChevronDown, LogOut, User, Settings, X, Clock } from 'lucide-react'
+import { Bell, Search, ChevronDown, LogOut, User, Settings, X, Clock, Trash2 } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { formatRelativeTime } from '@/lib/time'
+import { generateRoleColor, formatRoleLabel } from '@/lib/role'
 import { Loader2 } from 'lucide-react'
 import ModalGantiPassword from '../ModalGantiPassword'
+import Toast, { ToastData } from '@/components/ui/Toast'
 import { api } from '@/lib/axios'
 
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
@@ -20,16 +23,8 @@ const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   '/dashboard/laporan':        { title: 'Laporan',        description: 'Laporan keuangan koperasi'        },
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Administrator', ketua: 'Ketua', bendahara: 'Bendahara', super_admin: 'Super Admin',
-}
+// ROLE_LABELS and ROLE_COLORS removed as we use utilities from @/lib/role
 
-const ROLE_COLORS: Record<string, string> = {
-  admin:     'bg-violet-100 text-violet-700',
-  ketua:     'bg-blue-100 text-blue-700',
-  bendahara: 'bg-emerald-100 text-emerald-700',
-  super_admin: 'bg-rose-100 text-rose-700',
-}
 
 const QUICK_LINKS = [
   { label: 'Dashboard', href: '/dashboard'                },
@@ -49,7 +44,7 @@ interface Notification {
   type: 'warning' | 'info' | 'success'
   title: string
   desc: string
-  time: string
+  timestamp: Date | string // Changed from 'time' to 'timestamp'
   read: boolean
   href?: string
 }
@@ -68,10 +63,12 @@ export default function Header() {
   const [loggingOut,     setLoggingOut]     = useState(false)
   const [confirmLogout,  setConfirmLogout]  = useState(false)
   const [gantiPassword,  setGantiPassword]  = useState(false)
+  const [toast,          setToast]          = useState<ToastData | null>(null)
 
   const searchRef  = useRef<HTMLDivElement>(null)
   const notifRef   = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const prevUnreadCountRef = useRef<number>(0)
 
   const pageInfo   = PAGE_TITLES[pathname] ?? { title: 'Dashboard', description: '' }
   const unreadCount = notifications.filter(n => !n.read).length
@@ -95,28 +92,48 @@ export default function Header() {
     const fetchNotifications = async () => {
       try {
         setNotifLoading(true)
-        // Fetch data dari berbagai endpoint untuk membuat notifikasi
-        const angsuranRes = await api.get<any>('/angsuran?limit=100').catch(() => ({ data: [] }))
-        const pinjamanRes = await api.get<any>('/pinjaman?limit=100').catch(() => ({ data: [] }))
+        
+        // Fetch data dengan improved error handling
+        let angsuranRes = { data: [] }
+        let pinjamanRes = { data: [] }
+        
+        try {
+          const res = await api.get<any>('/angsuran?limit=100')
+          angsuranRes = { data: Array.isArray(res) ? res : (res?.data || []) }
 
+        } catch (err) {
+          console.warn('Failed to fetch angsuran:', err)
+          // Continue anyway, don't stop entire fetch
+        }
+        
+        try {
+          const res = await api.get<any>('/pinjaman?limit=100')
+          pinjamanRes = { data: Array.isArray(res) ? res : (res?.data || []) }
+
+        } catch (err) {
+          console.warn('Failed to fetch pinjaman:', err)
+        }
         const notifs: Notification[] = []
         let id = 1
 
-        // Ekstrak data dari response (bisa array langsung atau { data: [] })
-        const angsuranList = Array.isArray(angsuranRes) ? angsuranRes : (angsuranRes?.data || [])
-        const pinjamanList = Array.isArray(pinjamanRes) ? pinjamanRes : (pinjamanRes?.data || [])
+        const angsuranList = angsuranRes.data
+        const pinjamanList = pinjamanRes.data
 
         // Notifikasi: Angsuran jatuh tempo (belum dibayar)
+
         const overdueAngsuran = (Array.isArray(angsuranList) ? angsuranList : []).filter((a: any) => 
           a.status === 'pending' || a.status === 'belum_dibayar' || a.status === 'overdue'
         )
         if (overdueAngsuran.length > 0) {
+          const latestAngsuran = overdueAngsuran[0]
+          const timestamp = latestAngsuran.tanggal_jatuh_tempo || latestAngsuran.created_at || new Date()
+          
           notifs.push({
             id: id++,
             type: 'warning',
             title: 'Angsuran Jatuh Tempo',
             desc: `${overdueAngsuran.length} angsuran belum dibayar`,
-            time: 'Hari ini',
+            timestamp,
             read: false,
             href: '/dashboard/angsuran',
           })
@@ -127,12 +144,15 @@ export default function Header() {
           p.status === 'pending'
         )
         if (pendingLoans.length > 0) {
+          const latestLoan = pendingLoans[0]
+          const timestamp = latestLoan.created_at || latestLoan.tanggal_pengajuan || new Date()
+          
           notifs.push({
             id: id++,
             type: 'info',
             title: 'Pinjaman Menunggu Persetujuan',
             desc: `${pendingLoans.length} pengajuan pinjaman menunggu persetujuan`,
-            time: 'Hari ini',
+            timestamp,
             read: false,
             href: '/dashboard/pinjaman',
           })
@@ -145,14 +165,29 @@ export default function Header() {
             type: 'success',
             title: 'Semua Lancar',
             desc: 'Tidak ada pemberitahuan penting saat ini',
-            time: 'Sekarang',
+            timestamp: new Date(),
             read: true,
           })
         }
 
+        // Check if there are new unread notifications
+        const currentUnreadCount = notifs.filter(n => !n.read).length
+        if (prevUnreadCountRef.current > 0 && currentUnreadCount > prevUnreadCountRef.current) {
+          const newCount = currentUnreadCount - prevUnreadCountRef.current
+          setToast({
+            type: 'info',
+            message: `${newCount} notifikasi baru: ${notifs.filter(n => !n.read).map(n => n.title).join(', ')}`
+          })
+        }
+        prevUnreadCountRef.current = currentUnreadCount
+
         setNotifications(notifs)
       } catch (error) {
         console.error('Gagal memuat notifikasi:', error)
+        setToast({
+          type: 'error',
+          message: 'Gagal memuat notifikasi'
+        })
       } finally {
         setNotifLoading(false)
       }
@@ -184,6 +219,15 @@ export default function Header() {
     // Close dropdown
     setNotifOpen(false)
   }, [router])
+
+  const handleDeleteNotification = useCallback((notifId: number) => {
+    // Remove notification dari list
+    setNotifications(prev => prev.filter(n => n.id !== notifId))
+    setToast({
+      type: 'info',
+      message: 'Notifikasi dihapus'
+    })
+  }, [])
 
   // Buka dialog konfirmasi (bukan langsung logout)
   const openConfirm = useCallback(() => {
@@ -308,23 +352,37 @@ export default function Header() {
                     </div>
                   ) : notifications.length > 0 ? (
                     notifications.map(notif => (
-                      <button key={notif.id}
-                        onClick={() => handleNotificationClick(notif)}
-                        className={cn('w-full text-left flex gap-3 px-4 py-3 transition-colors',
+                      <div key={notif.id}
+                        className={cn('w-full group text-left flex gap-3 px-4 py-3 transition-colors',
                           !notif.read ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-surface-50')}>
-                        <span className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', NOTIF_COLORS[notif.type])} />
-                        <div className="flex-1 min-w-0">
-                          <p className={cn('text-xs font-semibold leading-snug', notif.read ? 'text-ink-600' : 'text-ink-800')}>
-                            {notif.title}
-                          </p>
-                          <p className="text-[11px] text-ink-400 mt-0.5 leading-relaxed line-clamp-2">{notif.desc}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Clock className="w-2.5 h-2.5 text-ink-200" />
-                            <p className="text-[10px] text-ink-300">{notif.time}</p>
+                        <button
+                          onClick={() => handleNotificationClick(notif)}
+                          className="flex-1 flex gap-3 items-start text-left"
+                        >
+                          <span className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', NOTIF_COLORS[notif.type])} />
+                          <div className="flex-1 min-w-0">
+                            <p className={cn('text-xs font-semibold leading-snug', notif.read ? 'text-ink-600' : 'text-ink-800')}>
+                              {notif.title}
+                            </p>
+                            <p className="text-[11px] text-ink-400 mt-0.5 leading-relaxed line-clamp-2">{notif.desc}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <Clock className="w-2.5 h-2.5 text-ink-200" />
+                              <p className="text-[10px] text-ink-300">{formatRelativeTime(notif.timestamp)}</p>
+                            </div>
                           </div>
-                        </div>
-                        {!notif.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
-                      </button>
+                          {!notif.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteNotification(notif.id)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-md shrink-0"
+                          title="Hapus notifikasi"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
                     ))
                   ) : (
                     <div className="flex items-center justify-center py-8 text-ink-400">
@@ -354,11 +412,14 @@ export default function Header() {
               </div>
               <div className="hidden md:block text-left">
                 <p className="text-xs font-semibold text-ink-800 leading-none capitalize">
-                  {user?.username.split('@')[0]}
+                  {user?.username?.split('@')?.[0] || 'User'}
                 </p>
+
+
                 <p className="text-[10px] text-ink-300 mt-0.5 capitalize">
-                  {user ? ROLE_LABELS[user.role] ?? user.role : '—'}
+                  {user ? formatRoleLabel(user.role) : '—'}
                 </p>
+
               </div>
               <ChevronDown className={cn('w-3 h-3 text-ink-300 hidden md:block transition-transform duration-150', userMenuOpen && 'rotate-180')} />
             </button>
@@ -374,9 +435,10 @@ export default function Header() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink-800 truncate">{user?.username}</p>
                       <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-md',
-                        ROLE_COLORS[user?.role ?? ''] ?? 'bg-surface-200 text-ink-500')}>
-                        {user ? ROLE_LABELS[user.role] ?? user.role : '—'}
+                        user ? generateRoleColor(user.role) : 'bg-surface-200 text-ink-500')}>
+                        {user ? formatRoleLabel(user.role) : '—'}
                       </span>
+
                     </div>
                   </div>
                 </div>
@@ -455,6 +517,14 @@ export default function Header() {
 
       {gantiPassword && (
         <ModalGantiPassword onClose={() => setGantiPassword(false)} />
+      )}
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
       )}
     </>
   )

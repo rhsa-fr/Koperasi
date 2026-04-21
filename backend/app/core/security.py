@@ -138,7 +138,7 @@ def create_token_response(user_id: int, username: str, role: str, permissions: O
         "user": {
             "id": user_id,
             "username": username,
-            "role": role
-        },
-        "permissions": permissions
+            "role": role,
+            "permissions": permissions or {}
+        }
     }

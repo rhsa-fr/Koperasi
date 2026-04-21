@@ -9,13 +9,6 @@ import enum
 from app.database import Base
 
 
-class UserRole(str, enum.Enum):
-    SUPER_ADMIN = "super_admin"
-    ADMIN     = "admin"
-    KETUA     = "ketua"
-    BENDAHARA = "bendahara"
-
-
 class User(Base):
     __tablename__ = "user"
 
@@ -23,11 +16,7 @@ class User(Base):
     username   = Column(String(50), unique=True, nullable=False, index=True)
     password   = Column(String(255), nullable=False)
 
-    # FIX: values_callable
-    role = Column(
-        SAEnum(UserRole, values_callable=lambda obj: [e.value for e in obj]),
-        nullable=False, index=True,
-    )
+    role = Column(String(50), nullable=False, index=True)
 
     is_active  = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())

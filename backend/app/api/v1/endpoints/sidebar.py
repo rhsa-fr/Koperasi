@@ -58,15 +58,66 @@ def update_role_sidebar(
     current_user: dict = Depends(require_permission("sidebar", "update")),
     db: Session = Depends(get_db)
 ):
-    """Update sidebar visibility mapping for a role"""
+    """
+    Update sidebar visibility mapping for a role and sync RBAC permissions.
+    Now automatically REVOKES 'read' permissions if a menu is hidden.
+    """
     from app.models.sidebar import MasterRoleSidebar
-    
-    # Remove existing
-    db.query(MasterRoleSidebar).filter(MasterRoleSidebar.role_id == role_id).delete()
-    
-    # Add new
-    for sid in sidebar_ids:
+    from app.models.role import MasterMenu, MasterRoleMenu
+
+    # 1. Get current mappings to identify removals
+    existing_mappings = db.query(MasterRoleSidebar).filter(MasterRoleSidebar.role_id == role_id).all()
+    existing_ids = {m.sidebar_id for m in existing_mappings}
+    new_ids = set(sidebar_ids)
+
+    to_remove = existing_ids - new_ids
+    to_add = new_ids - existing_ids
+
+    # 2. Process Removals (Visibility + RBAC Revocation)
+    if to_remove:
+        # Delete Visibility
+        db.query(MasterRoleSidebar).filter(
+            MasterRoleSidebar.role_id == role_id,
+            MasterRoleSidebar.sidebar_id.in_(list(to_remove))
+        ).delete(synchronize_session=False)
+
+        # Revoke 'read' Permissions
+        for sid in to_remove:
+            sidebar_item = db.query(MasterSidebar).filter(MasterSidebar.id_sidebar == sid).first()
+            if sidebar_item:
+                # Find the permission ID for (resource, 'read')
+                perm = db.query(MasterMenu).filter(
+                    MasterMenu.menu == sidebar_item.resource,
+                    MasterMenu.action == 'read'
+                ).first()
+                
+                if perm:
+                    # Remove the role-menu mapping
+                    db.query(MasterRoleMenu).filter(
+                        MasterRoleMenu.role_id == role_id,
+                        MasterRoleMenu.permission_id == perm.id_permission
+                    ).delete(synchronize_session=False)
+
+    # 3. Process Additions (Visibility + RBAC Granting)
+    for sid in to_add:
+        # Map visibility
         db.add(MasterRoleSidebar(role_id=role_id, sidebar_id=sid))
+        
+        # Sync RBAC Permission (Allow 'read' access)
+        sidebar_item = db.query(MasterSidebar).filter(MasterSidebar.id_sidebar == sid).first()
+        if sidebar_item:
+            perm = db.query(MasterMenu).filter(
+                MasterMenu.menu == sidebar_item.resource,
+                MasterMenu.action == 'read'
+            ).first()
+            
+            if perm:
+                existing_role_menu = db.query(MasterRoleMenu).filter(
+                    MasterRoleMenu.role_id == role_id,
+                    MasterRoleMenu.permission_id == perm.id_permission
+                ).first()
+                if not existing_role_menu:
+                    db.add(MasterRoleMenu(role_id=role_id, permission_id=perm.id_permission))
         
     db.commit()
 
@@ -75,13 +126,17 @@ def update_role_sidebar(
         user_id=current_user["id"],
         username=current_user["username"],
         role=current_user["role"],
-        action="update_sidebar_visibility",
+        action="sync_sidebar_visibility",
         resource="sidebar",
         target_id=role_id,
-        details={"mapped_sidebar_ids": sidebar_ids}
+        details={
+            "added": list(to_add),
+            "removed": list(to_remove),
+            "final_config": sidebar_ids
+        }
     )
 
-    return {"message": "Visibilitas menu role berhasil diperbarui"}
+    return {"message": "Visibilitas menu dan izin akses (RBAC) berhasil disinkronisasi"}
 
 @router.get("/manage", response_model=List[SidebarResponse])
 def get_all_menus(

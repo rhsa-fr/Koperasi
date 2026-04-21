@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel, Field
 from typing import Optional
-from app.schemas.user import UserRole
+
 
 
 class Token(BaseModel):
@@ -15,13 +15,13 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[int] = None
     username: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[str] = None
 
 
 class TokenPayload(BaseModel):
     sub: str = Field(..., description="User ID")
     username: str = Field(..., description="Username")
-    role: UserRole = Field(..., description="User role")
+    role: str = Field(..., description="User role")
     exp: int = Field(..., description="Expiration timestamp")
     iat: int = Field(..., description="Issued at timestamp")
 

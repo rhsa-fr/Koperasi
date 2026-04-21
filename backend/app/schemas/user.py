@@ -8,16 +8,9 @@ from datetime import datetime
 from enum import Enum
 
 
-class UserRole(str, Enum):
-    SUPER_ADMIN = "super_admin"
-    ADMIN = "admin"
-    KETUA = "ketua"
-    BENDAHARA = "bendahara"
-
-
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="Username untuk login")
-    role: UserRole = Field(..., description="Role user: admin, ketua, atau bendahara")
+    role: str = Field(..., description="Role user")
 
 
 class UserCreate(UserBase):
@@ -27,7 +20,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     password: Optional[str] = Field(None, min_length=6, max_length=100)
-    role: Optional[UserRole] = None
+    role: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -48,7 +41,7 @@ class UserInDB(UserBase):
 class UserResponse(BaseModel):
     id_user: int
     username: str
-    role: UserRole
+    role: str
     is_active: bool
     created_at: datetime
     

@@ -24,7 +24,7 @@ export default function Toast({ type, message, onClose, duration = 3000 }: Toast
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsExiting(true)
-      setTimeout(onClose, 300) // matches animation duration
+      setTimeout(onClose, 500) // matches animation duration
     }, duration)
 
     return () => clearTimeout(timer)
@@ -44,6 +44,7 @@ export default function Toast({ type, message, onClose, duration = 3000 }: Toast
     loading: 'bg-white border-surface-200',
   }
 
+
   return (
     <div className={cn(
       "fixed top-6 right-6 z-[100] flex items-center gap-3 p-4 pr-12 rounded-2xl border shadow-2xl",
@@ -58,7 +59,7 @@ export default function Toast({ type, message, onClose, duration = 3000 }: Toast
       <button 
         onClick={() => {
           setIsExiting(true)
-          setTimeout(onClose, 300)
+          setTimeout(onClose, 500)
         }}
         className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-ink-300 hover:bg-black/5 hover:text-ink-600 transition-all"
       >

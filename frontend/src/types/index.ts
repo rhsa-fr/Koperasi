@@ -2,7 +2,7 @@
 // User & Auth Types
 // ============================================================================
 
-export type UserRole = 'admin' | 'ketua' | 'bendahara'
+export type UserRole = string
 
 export interface User {
   id_user: number

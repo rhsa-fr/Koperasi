@@ -190,6 +190,16 @@ def attach_syarat_to_pinjaman(
     return pinjaman_syarat_list
 
 
+def get_pinjaman_syarat_by_id(db: Session, id_pinjaman_syarat: int) -> PinjamanSyarat:
+    """Get pinjaman syarat by ID"""
+    ps = db.query(PinjamanSyarat).filter(
+        PinjamanSyarat.id_pinjaman_syarat == id_pinjaman_syarat
+    ).first()
+    if not ps:
+        raise NotFoundException("Pinjaman syarat tidak ditemukan")
+    return ps
+
+
 def update_pinjaman_syarat(
     db: Session,
     id_pinjaman_syarat: int,

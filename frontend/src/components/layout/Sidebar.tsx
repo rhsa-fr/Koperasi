@@ -67,11 +67,17 @@ export default function Sidebar() {
   const [setting, setSetting] = useState<Setting | null>(null)
   const [navItems, setNavItems] = useState<NavItem[]>([])
 
-  const isActive = (href: string) =>
-    href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href)
+  const isActive = (href: string) => {
+    if (href === '/dashboard' || href === '/dashboard/') {
+      return pathname === '/dashboard' || pathname === '/dashboard/' || pathname.startsWith('/dashboard/superadmin')
+    }
+    return pathname.startsWith(href)
+  }
 
-  // Fetch setting & nav items
+  // Fetch setting & nav items (re-fetch when user changes, e.g. after login)
   useEffect(() => {
+    if (!user) return // Don't fetch if not logged in yet
+
     const initSidebar = async () => {
       try {
         const [setRes, navRes] = await Promise.all([
@@ -85,7 +91,7 @@ export default function Sidebar() {
       }
     }
     initSidebar()
-  }, [])
+  }, [user?.id])
 
   const handleLogout = async () => {
     setConfirmLogout(false)
@@ -100,11 +106,15 @@ export default function Sidebar() {
       items: navItems.filter((item) => {
         if (item.section !== section) return false
 
-        // 2. ── Restricted Sections for Non-Superadmins ──
-        // Only Super Admin can see menus in the 'admin' (Administrator) section
+        // Restricted sections based on role:
+        // - Only Super Admin can see menus in the 'admin' (Administrator) section
         if (section === 'admin' && user?.role !== 'super_admin') return false
+        
+        // - Only Super Admin can see 'superadmin' section
+        // Note: if there's a 'superadmin' section in the API, add this filter
+        // if (section === 'superadmin' && user?.role !== 'super_admin') return false
 
-        // 3. Final permission check
+        // Final permission check
         // Backend handles role-sidebar mapping, Frontend handles read permissions
         return can(item.resource, 'read')
       }),

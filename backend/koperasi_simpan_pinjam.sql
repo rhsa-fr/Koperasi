@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 17 Mar 2026 pada 13.35
+-- Waktu pembuatan: 20 Apr 2026 pada 14.05
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.0.30
 
@@ -39,20 +39,6 @@ CREATE TABLE `anggota` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data untuk tabel `anggota`
---
-
-INSERT INTO `anggota` (`id_anggota`, `no_anggota`, `nama_lengkap`, `email`, `no_telepon`, `tanggal_bergabung`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'A-20260313-001', 'Susanto Jaidi', 'susanto@gmail.com', '081736183', '2026-03-13', 'aktif', '2026-03-13 08:38:19', '2026-03-13 08:38:19'),
-(2, 'A-20260313-002', 'Bambang Yuda', 'yuda@gmail.com', '087318318', '2026-03-13', 'aktif', '2026-03-13 13:13:29', '2026-03-16 23:28:03'),
-(3, 'A-20260313-003', 'Budi Sulaiman', 'sulaiman@gmail.com', '083184880', '2026-03-01', 'aktif', '2026-03-13 13:14:29', '2026-03-16 23:46:49'),
-(4, 'A-20260313-004', 'Pipit Muenah', 'pipit@gmail.com', '089712871', '2026-03-11', 'aktif', '2026-03-13 13:15:46', '2026-03-13 13:15:46'),
-(5, 'A-20260315-001', 'Doni Salman', 'salman@gmail.com', '0892747247', '2026-03-15', 'aktif', '2026-03-15 06:25:38', '2026-03-15 06:25:38'),
-(6, 'A-20260315-002', 'Warso', 'warsogaming@gmail.com', '08941824184', '2026-03-15', 'aktif', '2026-03-15 07:02:57', '2026-03-15 07:02:57'),
-(7, 'A-20260317-001', 'Mubin', 'mubin@gmail.com', '0898418941', '2026-03-17', 'aktif', '2026-03-17 08:02:32', '2026-03-17 08:02:32'),
-(8, 'A-20260317-002', 'Jono Hermawan', 'hermawan@gmail.com', '089284824', '2026-03-17', 'aktif', '2026-03-17 12:02:31', '2026-03-17 12:02:31');
-
 -- --------------------------------------------------------
 
 --
@@ -77,72 +63,6 @@ CREATE TABLE `angsuran` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data untuk tabel `angsuran`
---
-
-INSERT INTO `angsuran` (`id_angsuran`, `id_pinjaman`, `no_angsuran`, `angsuran_ke`, `tanggal_jatuh_tempo`, `nominal_angsuran`, `pokok`, `bunga`, `denda`, `total_bayar`, `tanggal_bayar`, `status`, `keterangan`, `id_user`, `created_at`, `updated_at`) VALUES
-(1, 1, 'ANG-20260314-1-1', 1, '2026-04-13', 425000.00, 416666.67, 8333.33, 0.00, 425000.00, '2026-03-13', 'lunas', NULL, 3, '2026-03-13 18:08:44', '2026-03-13 20:19:46'),
-(2, 1, 'ANG-20260314-1-2', 2, '2026-05-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(3, 1, 'ANG-20260314-1-3', 3, '2026-06-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(4, 1, 'ANG-20260314-1-4', 4, '2026-07-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(5, 1, 'ANG-20260314-1-5', 5, '2026-08-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(6, 1, 'ANG-20260314-1-6', 6, '2026-09-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(7, 1, 'ANG-20260314-1-7', 7, '2026-10-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(8, 1, 'ANG-20260314-1-8', 8, '2026-11-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(9, 1, 'ANG-20260314-1-9', 9, '2026-12-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(10, 1, 'ANG-20260314-1-10', 10, '2027-01-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(11, 1, 'ANG-20260314-1-11', 11, '2027-02-13', 425000.00, 416666.67, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(12, 1, 'ANG-20260314-1-12', 12, '2027-03-13', 516666.67, 508333.33, 8333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-13 18:08:44', '2026-03-13 18:08:44'),
-(13, 2, 'ANG-20260315-2-1', 1, '2026-04-15', 637500.00, 625000.00, 12500.00, 0.00, 637500.00, '2026-03-17', 'lunas', 'BCA', 3, '2026-03-15 06:20:57', '2026-03-17 00:07:03'),
-(14, 2, 'ANG-20260315-2-2', 2, '2026-05-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(15, 2, 'ANG-20260315-2-3', 3, '2026-06-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(16, 2, 'ANG-20260315-2-4', 4, '2026-07-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(17, 2, 'ANG-20260315-2-5', 5, '2026-08-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(18, 2, 'ANG-20260315-2-6', 6, '2026-09-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(19, 2, 'ANG-20260315-2-7', 7, '2026-10-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(20, 2, 'ANG-20260315-2-8', 8, '2026-11-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(21, 2, 'ANG-20260315-2-9', 9, '2026-12-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(22, 2, 'ANG-20260315-2-10', 10, '2027-01-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(23, 2, 'ANG-20260315-2-11', 11, '2027-02-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(24, 2, 'ANG-20260315-2-12', 12, '2027-03-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(25, 2, 'ANG-20260315-2-13', 13, '2027-04-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(26, 2, 'ANG-20260315-2-14', 14, '2027-05-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(27, 2, 'ANG-20260315-2-15', 15, '2027-06-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(28, 2, 'ANG-20260315-2-16', 16, '2027-07-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(29, 2, 'ANG-20260315-2-17', 17, '2027-08-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(30, 2, 'ANG-20260315-2-18', 18, '2027-09-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(31, 2, 'ANG-20260315-2-19', 19, '2027-10-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(32, 2, 'ANG-20260315-2-20', 20, '2027-11-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(33, 2, 'ANG-20260315-2-21', 21, '2027-12-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(34, 2, 'ANG-20260315-2-22', 22, '2028-01-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(35, 2, 'ANG-20260315-2-23', 23, '2028-02-15', 637500.00, 625000.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(36, 2, 'ANG-20260315-2-24', 24, '2028-03-15', 925000.00, 912500.00, 12500.00, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-15 06:20:57', '2026-03-15 06:20:57'),
-(37, 4, 'ANG-20260317-4-1', 1, '2026-04-16', 170000.00, 166666.67, 3333.33, 0.00, 170000.00, '2026-03-17', 'lunas', 'BRI', 3, '2026-03-16 22:32:48', '2026-03-17 00:07:17'),
-(38, 4, 'ANG-20260317-4-2', 2, '2026-05-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(39, 4, 'ANG-20260317-4-3', 3, '2026-06-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(40, 4, 'ANG-20260317-4-4', 4, '2026-07-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(41, 4, 'ANG-20260317-4-5', 5, '2026-08-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(42, 4, 'ANG-20260317-4-6', 6, '2026-09-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(43, 4, 'ANG-20260317-4-7', 7, '2026-10-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(44, 4, 'ANG-20260317-4-8', 8, '2026-11-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(45, 4, 'ANG-20260317-4-9', 9, '2026-12-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(46, 4, 'ANG-20260317-4-10', 10, '2027-01-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(47, 4, 'ANG-20260317-4-11', 11, '2027-02-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(48, 4, 'ANG-20260317-4-12', 12, '2027-03-16', 206666.67, 203333.33, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 22:32:48', '2026-03-16 22:32:48'),
-(49, 7, 'ANG-20260317-7-1', 1, '2026-04-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(50, 7, 'ANG-20260317-7-2', 2, '2026-05-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(51, 7, 'ANG-20260317-7-3', 3, '2026-06-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(52, 7, 'ANG-20260317-7-4', 4, '2026-07-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(53, 7, 'ANG-20260317-7-5', 5, '2026-08-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(54, 7, 'ANG-20260317-7-6', 6, '2026-09-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(55, 7, 'ANG-20260317-7-7', 7, '2026-10-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(56, 7, 'ANG-20260317-7-8', 8, '2026-11-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(57, 7, 'ANG-20260317-7-9', 9, '2026-12-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(58, 7, 'ANG-20260317-7-10', 10, '2027-01-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(59, 7, 'ANG-20260317-7-11', 11, '2027-02-16', 170000.00, 166666.67, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57'),
-(60, 7, 'ANG-20260317-7-12', 12, '2027-03-16', 206666.67, 203333.33, 3333.33, 0.00, 0.00, NULL, 'belum_bayar', NULL, NULL, '2026-03-16 23:47:57', '2026-03-16 23:47:57');
 
 -- --------------------------------------------------------
 
@@ -200,7 +120,7 @@ CREATE TABLE `koperasi_setting` (
 --
 
 INSERT INTO `koperasi_setting` (`id_setting`, `nama_koperasi`, `deskripsi`, `alamat`, `no_telepon`, `email`, `bunga_default`, `denda_keterlambatan`, `min_nominal_pinjaman`, `max_nominal_pinjaman`, `max_lama_angsuran`, `saldo_minimal_simpanan`, `created_at`, `updated_at`) VALUES
-(1, 'Kopdar', NULL, NULL, NULL, NULL, 5.00, 1.01, 100000.00, NULL, 60, 50000.00, '2026-03-17 08:30:43', '2026-03-17 08:58:37');
+(1, 'Koperasi Simpan Pinjam', 'Sistem Informasi Koperasi Simpan Pinjam', 'Jl. Contoh Alamat No. 123', '021-12345678', 'info@koperasi.com', 2.00, 1.00, 1000000.00, 100000000.00, 60, 50000.00, '2026-03-17 08:30:43', '2026-04-20 07:05:30');
 
 -- --------------------------------------------------------
 
@@ -232,21 +152,6 @@ CREATE TABLE `pinjaman` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data untuk tabel `pinjaman`
---
-
-INSERT INTO `pinjaman` (`id_pinjaman`, `id_anggota`, `no_pinjaman`, `tanggal_pengajuan`, `nominal_pinjaman`, `bunga_persen`, `total_bunga`, `total_pinjaman`, `lama_angsuran`, `nominal_angsuran`, `keperluan`, `status`, `tanggal_persetujuan`, `tanggal_pencairan`, `tanggal_lunas`, `id_user_pengaju`, `id_user_persetujuan`, `catatan_persetujuan`, `sisa_pinjaman`, `created_at`, `updated_at`) VALUES
-(1, 4, 'PJM-20260313-201734', '2026-03-13', 5000000.00, 2.00, 100000.00, 5100000.00, 12, 425000.00, 'Modal Usaha', 'disetujui', '2026-03-13', '2026-03-13', NULL, 1, 2, '', 4583333.33, '2026-03-13 13:17:34', '2026-03-13 20:19:46'),
-(2, 1, 'PJM-20260314-200026', '2026-01-09', 15000000.00, 2.00, 300000.00, 15300000.00, 24, 637500.00, 'Beli Motor', 'disetujui', '2026-03-15', '2026-03-15', NULL, 1, 2, '', 14375000.00, '2026-03-14 13:00:26', '2026-03-17 00:07:03'),
-(3, 5, 'PJM-20260315-132631', '2026-03-15', 1000000.00, 2.00, 20000.00, 1020000.00, 12, 85000.00, 'Usaha', 'pending', NULL, NULL, NULL, 1, NULL, NULL, 1020000.00, '2026-03-15 06:26:31', '2026-03-15 06:26:31'),
-(4, 6, 'PJM-20260315-140342', '2026-03-15', 2000000.00, 2.00, 40000.00, 2040000.00, 12, 170000.00, 'Modal', 'disetujui', '2026-03-16', '2026-03-16', NULL, 1, 2, '', 1833333.33, '2026-03-15 07:03:42', '2026-03-17 00:07:17'),
-(5, 2, 'PJM-20260317-062834', '2026-03-16', 5000000.00, 2.00, 100000.00, 5100000.00, 12, 425000.00, 'Lebauran', 'ditolak', NULL, NULL, NULL, 3, 2, 'Ga Urus', 5100000.00, '2026-03-16 23:28:34', '2026-03-16 23:36:10'),
-(6, 2, 'PJM-20260317-063707', '2026-03-17', 1000000.00, 2.00, 20000.00, 1020000.00, 12, 85000.00, 'BU', 'pending', NULL, NULL, NULL, 3, NULL, NULL, 1020000.00, '2026-03-16 23:37:07', '2026-03-16 23:37:07'),
-(7, 3, 'PJM-20260317-064716', '2026-03-16', 2000000.00, 2.00, 40000.00, 2040000.00, 12, 170000.00, 'Bu', 'disetujui', '2026-03-16', '2026-03-16', NULL, 1, 2, '', 2040000.00, '2026-03-16 23:47:16', '2026-03-16 23:47:57'),
-(8, 7, 'PJM-20260317-150259', '2026-03-17', 1000000.00, 2.00, 20000.00, 1020000.00, 3, 340000.00, 'bu', 'pending', NULL, NULL, NULL, 1, NULL, NULL, 1020000.00, '2026-03-17 08:02:59', '2026-03-17 08:02:59'),
-(9, 8, 'PJM-20260317-190625', '2026-03-17', 1000000.00, 2.00, 20000.00, 1020000.00, 3, 340000.00, 'BU', 'pending', NULL, NULL, NULL, 1, NULL, NULL, 1020000.00, '2026-03-17 12:06:25', '2026-03-17 12:06:25');
-
 -- --------------------------------------------------------
 
 --
@@ -265,28 +170,6 @@ CREATE TABLE `pinjaman_syarat` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data untuk tabel `pinjaman_syarat`
---
-
-INSERT INTO `pinjaman_syarat` (`id_pinjaman_syarat`, `id_pinjaman`, `id_syarat`, `is_terpenuhi`, `dokumen_path`, `catatan`, `tanggal_verifikasi`, `id_user_verifikasi`, `created_at`, `updated_at`) VALUES
-(1, 4, 1, 0, NULL, NULL, NULL, NULL, '2026-03-15 07:03:42', '2026-03-15 07:03:42'),
-(2, 4, 2, 0, NULL, NULL, NULL, NULL, '2026-03-15 07:03:42', '2026-03-15 07:03:42'),
-(3, 4, 5, 0, NULL, NULL, NULL, NULL, '2026-03-15 07:03:42', '2026-03-15 07:03:42'),
-(4, 4, 6, 0, NULL, NULL, NULL, NULL, '2026-03-15 07:03:42', '2026-03-15 07:03:42'),
-(5, 7, 1, 1, NULL, NULL, '2026-03-16 23:47:37', 2, '2026-03-16 23:47:17', '2026-03-16 23:47:37'),
-(6, 7, 2, 1, NULL, NULL, '2026-03-16 23:47:39', 2, '2026-03-16 23:47:17', '2026-03-16 23:47:39'),
-(7, 7, 5, 1, NULL, NULL, '2026-03-16 23:47:40', 2, '2026-03-16 23:47:17', '2026-03-16 23:47:40'),
-(8, 7, 6, 0, NULL, NULL, NULL, NULL, '2026-03-16 23:47:17', '2026-03-16 23:47:17'),
-(9, 8, 1, 0, NULL, NULL, NULL, NULL, '2026-03-17 08:02:59', '2026-03-17 08:02:59'),
-(10, 8, 2, 0, NULL, NULL, NULL, NULL, '2026-03-17 08:02:59', '2026-03-17 08:02:59'),
-(11, 8, 5, 0, NULL, NULL, NULL, NULL, '2026-03-17 08:02:59', '2026-03-17 08:02:59'),
-(12, 8, 6, 0, NULL, NULL, NULL, NULL, '2026-03-17 08:02:59', '2026-03-17 08:02:59'),
-(13, 9, 1, 0, NULL, NULL, NULL, NULL, '2026-03-17 12:06:25', '2026-03-17 12:06:25'),
-(14, 9, 2, 0, NULL, NULL, NULL, NULL, '2026-03-17 12:06:25', '2026-03-17 12:06:25'),
-(15, 9, 5, 0, NULL, NULL, NULL, NULL, '2026-03-17 12:06:25', '2026-03-17 12:06:25'),
-(16, 9, 6, 0, NULL, NULL, NULL, NULL, '2026-03-17 12:06:25', '2026-03-17 12:06:25');
 
 -- --------------------------------------------------------
 
@@ -311,16 +194,6 @@ CREATE TABLE `profil_anggota` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data untuk tabel `profil_anggota`
---
-
-INSERT INTO `profil_anggota` (`id_profil`, `id_anggota`, `nik`, `tempat_lahir`, `tanggal_lahir`, `jenis_kelamin`, `alamat`, `kota`, `provinsi`, `kode_pos`, `pekerjaan`, `foto_profil`, `created_at`, `updated_at`) VALUES
-(1, 4, '3214218941981', 'Cirebon', '1999-05-12', 'P', 'Jatibarang', 'Kab. Sumedang', 'Jawa Barat', '45311', 'Petani', NULL, '2026-03-13 17:45:44', '2026-03-14 04:36:26'),
-(2, 1, '321387163418746', 'Jakarta', '1989-09-12', 'L', 'Jl.Jalan', 'Jakarta Barat', 'DKI Jakarta', '11110', 'Pegawai BUMN', NULL, '2026-03-14 20:42:59', '2026-03-14 20:42:59'),
-(3, 8, NULL, 'Indramayu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-17 12:03:03', '2026-03-17 12:03:03'),
-(4, 7, NULL, NULL, '1999-12-11', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-03-17 12:19:09', '2026-03-17 12:19:09');
-
 -- --------------------------------------------------------
 
 --
@@ -341,24 +214,6 @@ CREATE TABLE `simpanan` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data untuk tabel `simpanan`
---
-
-INSERT INTO `simpanan` (`id_simpanan`, `id_anggota`, `id_jenis_simpanan`, `no_transaksi`, `tanggal_transaksi`, `tipe_transaksi`, `nominal`, `saldo_akhir`, `keterangan`, `id_user`, `created_at`, `updated_at`) VALUES
-(1, 4, 2, 'TRX-20260314-005650', '2026-03-13', 'setor', 200000.00, 200000.00, NULL, 1, '2026-03-13 17:56:50', '2026-03-13 17:56:50'),
-(2, 4, 1, 'TRX-20260314-200701', '2026-03-14', 'setor', 100000.00, 100000.00, NULL, 1, '2026-03-14 13:07:01', '2026-03-14 13:07:01'),
-(3, 4, 3, 'TRX-20260315-123405', '2026-03-15', 'setor', 1000000.00, 1000000.00, 'Nabung', 1, '2026-03-15 05:34:05', '2026-03-15 05:34:05'),
-(4, 4, 3, 'TRX-20260315-124810', '2026-03-15', 'tarik', 200000.00, 800000.00, 'Makan', 1, '2026-03-15 05:48:10', '2026-03-15 05:48:10'),
-(5, 1, 4, 'TRX-20260315-124855', '2026-03-15', 'setor', 1000000.00, 1000000.00, NULL, 1, '2026-03-15 05:48:55', '2026-03-15 05:48:55'),
-(6, 1, 4, 'TRX-20260315-124909', '2026-03-15', 'tarik', 500000.00, 500000.00, NULL, 1, '2026-03-15 05:49:09', '2026-03-15 05:49:09'),
-(7, 6, 3, 'TRX-20260317-053114', '2026-03-16', 'setor', 1000000.00, 1000000.00, NULL, 3, '2026-03-16 22:31:14', '2026-03-16 22:31:14'),
-(8, 6, 3, 'TRX-20260317-055500', '2026-03-16', 'tarik', 100000.00, 900000.00, NULL, 3, '2026-03-16 22:55:00', '2026-03-16 22:55:00'),
-(9, 6, 3, 'TRX-20260317-080241', '2026-03-17', 'tarik', 20000.00, 880000.00, NULL, 3, '2026-03-17 01:02:41', '2026-03-17 01:02:41'),
-(10, 6, 3, 'TRX-20260317-080913', '2026-03-17', 'tarik', 80000.00, 800000.00, NULL, 3, '2026-03-17 01:09:13', '2026-03-17 01:09:13'),
-(11, 6, 3, 'TRX-20260317-150015', '2026-03-17', 'tarik', 10000.00, 790000.00, NULL, 3, '2026-03-17 08:00:15', '2026-03-17 08:00:15'),
-(12, 8, 2, 'TRX-20260317-190547', '2026-03-17', 'setor', 50000.00, 50000.00, NULL, 1, '2026-03-17 12:05:47', '2026-03-17 12:05:47');
 
 -- --------------------------------------------------------
 
@@ -405,7 +260,7 @@ CREATE TABLE `user` (
   `id_user` int(11) NOT NULL,
   `username` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','ketua','bendahara') NOT NULL,
+  `role` enum('super_admin','admin','ketua','bendahara') NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -416,9 +271,10 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`id_user`, `username`, `password`, `role`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'admin@koprasi.com', '$2b$12$WJKehEM1KG06rMPAC8y5HOTWGtzpySN/Mhs9Wg7riNoRN8T.Ny8qC', 'admin', 1, '2026-03-11 16:51:30', '2026-03-11 16:51:30'),
-(2, 'ketua@koprasi.com', '$2b$12$rX.c9mDRSsxKMStOCSCi4e8DWT42QH7VUDluKpZ6u3wKHH6UmEYdm', 'ketua', 1, '2026-03-11 16:51:30', '2026-03-11 16:51:30'),
-(3, 'bendahara@koprasi.com', '$2b$12$v.4FHAceNxz8IxUCL8mRueiDfdELSq6w2ICCQ636AlTmmEziPvsYa', 'bendahara', 1, '2026-03-11 16:51:30', '2026-03-17 07:52:36');
+(1, 'superadmin@koprasi.com', '$2b$12$WJKehEM1KG06rMPAC8y5HOTWGtzpySN/Mhs9Wg7riNoRN8T.Ny8qC', 'super_admin', 1, '2026-03-11 16:51:30', '2026-04-20 07:05:30'),
+(2, 'admin@koprasi.com', '$2b$12$WJKehEM1KG06rMPAC8y5HOTWGtzpySN/Mhs9Wg7riNoRN8T.Ny8qC', 'admin', 1, '2026-03-11 16:51:30', '2026-03-11 16:51:30'),
+(3, 'ketua@koprasi.com', '$2b$12$rX.c9mDRSsxKMStOCSCi4e8DWT42QH7VUDluKpZ6u3wKHH6UmEYdm', 'ketua', 1, '2026-03-11 16:51:30', '2026-03-11 16:51:30'),
+(4, 'bendahara@koprasi.com', '$2b$12$v.4FHAceNxz8IxUCL8mRueiDfdELSq6w2ICCQ636AlTmmEziPvsYa', 'bendahara', 1, '2026-03-11 16:51:30', '2026-03-17 07:52:36');
 
 --
 -- Indexes for dumped tables
@@ -539,19 +395,19 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT untuk tabel `anggota`
 --
 ALTER TABLE `anggota`
-  MODIFY `id_anggota` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_anggota` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `angsuran`
 --
 ALTER TABLE `angsuran`
-  MODIFY `id_angsuran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id_angsuran` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `jenis_simpanan`
 --
 ALTER TABLE `jenis_simpanan`
-  MODIFY `id_jenis_simpanan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_jenis_simpanan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT untuk tabel `koperasi_setting`
@@ -563,25 +419,25 @@ ALTER TABLE `koperasi_setting`
 -- AUTO_INCREMENT untuk tabel `pinjaman`
 --
 ALTER TABLE `pinjaman`
-  MODIFY `id_pinjaman` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_pinjaman` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `pinjaman_syarat`
 --
 ALTER TABLE `pinjaman_syarat`
-  MODIFY `id_pinjaman_syarat` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id_pinjaman_syarat` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `profil_anggota`
 --
 ALTER TABLE `profil_anggota`
-  MODIFY `id_profil` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_profil` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `simpanan`
 --
 ALTER TABLE `simpanan`
-  MODIFY `id_simpanan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_simpanan` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `syarat_peminjaman`

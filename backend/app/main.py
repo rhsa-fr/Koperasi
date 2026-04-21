@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import init_db, close_db
 from app.api.v1.router import router as api_v1_router
@@ -38,6 +39,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files (uploads)
+import os
+if not os.path.exists(settings.UPLOAD_FOLDER):
+    os.makedirs(settings.UPLOAD_FOLDER)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_FOLDER), name="uploads")
 
 
 # ============================================================================

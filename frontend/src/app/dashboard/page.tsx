@@ -182,7 +182,14 @@ function AlertRow({ icon: Icon, color, label, count, loading, href, router }: {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+
+  // Redirect superadmin to superadmin dashboard
+  useEffect(() => {
+    if (!isLoading && user && user.role === 'super_admin') {
+      router.replace('/dashboard/superadmin')
+    }
+  }, [user?.role, isLoading, router])
 
   const [stats, setStats]                   = useState<Stats | null>(null)
   const [recentSimpanan, setRecentSimpanan] = useState<SimpananItem[]>([])

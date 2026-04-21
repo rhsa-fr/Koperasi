@@ -94,6 +94,34 @@ export function hitungPinjaman(
   return { totalBunga, totalPinjaman, nominalAngsuran }
 }
 
+export interface PinjamanSyaratDetailResponse {
+  id_pinjaman_syarat: number
+  id_pinjaman: number
+  id_syarat: number
+  is_terpenuhi: boolean
+  dokumen_path?: string
+  catatan?: string
+  tanggal_verifikasi?: string
+  nama_syarat?: string
+  deskripsi_syarat?: string
+  dokumen_diperlukan?: string
+  syarat?: {
+    id_syarat: number
+    kode_syarat: string
+    nama_syarat: string
+    is_wajib: boolean
+  }
+}
+
+export interface SyaratChecklistResponse {
+  total_syarat: number
+  syarat_terpenuhi: number
+  syarat_belum_terpenuhi: number
+  persentase_kelengkapan: number
+  semua_syarat_wajib_terpenuhi: boolean
+  detail_syarat: PinjamanSyaratDetailResponse[]
+}
+
 export const STATUS_CONFIG: Record<StatusPinjaman, { label: string; bg: string; text: string; dot: string }> = {
   pending:   { label: 'Menunggu',  bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-400' },
   disetujui: { label: 'Disetujui', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },

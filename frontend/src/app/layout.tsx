@@ -2,6 +2,13 @@ import type { Metadata } from 'next'
 import { AuthProvider } from '@/context/AuthContext'
 import '@/styles/globals.css'
 
+import { Plus_Jakarta_Sans } from 'next/font/google'
+
+const jakartaSans = Plus_Jakarta_Sans({ 
+  subsets: ['latin'],
+  variable: '--font-sans',
+})
+
 export const metadata: Metadata = {
   title: {
     default: 'Kopdar — Koperasi Simpan Pinjam',
@@ -20,10 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="antialiased">
+      <body className={`${jakartaSans.variable} font-sans antialiased`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

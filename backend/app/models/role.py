@@ -56,6 +56,21 @@ class MasterRoleMenu(Base):
     menu = relationship("MasterMenu", back_populates="roles")
 
 
+class UserPermission(Base):
+    __tablename__ = "user_permission"
+
+    id_user_permission = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("user.id_user", ondelete="CASCADE"), nullable=False, index=True)
+    permission_id = Column(Integer, ForeignKey("master_menu.id_permission", ondelete="CASCADE"), nullable=False, index=True)
+    is_granted = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(),
+                        onupdate=func.current_timestamp())
+
+    # Relationships
+    permission = relationship("MasterMenu")
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 

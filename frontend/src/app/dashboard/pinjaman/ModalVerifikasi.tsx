@@ -5,10 +5,13 @@ import {
   X, CheckCircle2, XCircle, Loader2,
   Calendar, FileText, ShieldCheck, ShieldX,
   Wallet, CreditCard, ArrowDownCircle, ArrowUpCircle,
-  AlertCircle, TrendingUp, TrendingDown,
+  AlertCircle, ExternalLink,
 } from 'lucide-react'
 import { Pinjaman, PinjamanApprovePayload, PinjamanRejectPayload, formatRupiah } from './types'
+import { cn, getFileUrl, isImage, isPdf } from '@/lib/utils'
+
 import { api } from '@/lib/axios'
+
 
 // ============================================================================
 // Types
@@ -106,6 +109,22 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
   const [riwayatPinjaman, setRiwayatPinjaman]   = useState<RiwayatPinjaman[]>([])
   const [loadingSaldo, setLoadingSaldo]         = useState(false)
   const [loadingRiwayat, setLoadingRiwayat]     = useState(false)
+
+  // Pratinjau Dokumen
+  const [activeDoc, setActiveDoc]               = useState<string | null>(null)
+  const [selectedSyaratId, setSelectedSyaratId] = useState<number | null>(null)
+
+  // Set default active doc jika ada
+  useEffect(() => {
+    if (activeTab === 'syarat' && checklist && !activeDoc) {
+      const firstWithDoc = checklist.detail_syarat.find(d => d.dokumen_path)
+      if (firstWithDoc) {
+        setActiveDoc(firstWithDoc.dokumen_path)
+        setSelectedSyaratId(firstWithDoc.id_pinjaman_syarat)
+      }
+    }
+  }, [activeTab, checklist, activeDoc])
+
 
   // ── Fetch checklist saat modal dibuka ──────────────────────────────────────
   const fetchChecklist = async () => {
@@ -239,7 +258,13 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="min-h-full flex items-center justify-center py-8">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col animate-fade-in relative">
+        <div className={cn(
+          "bg-white rounded-2xl shadow-2xl w-full flex flex-col animate-fade-in relative transition-all duration-300",
+          activeTab === 'syarat' && checklist && checklist.detail_syarat.some(d => d.dokumen_path) 
+            ? "max-w-6xl" 
+            : "max-w-xl"
+        )}>
+
 
           {/* ── Header ─────────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200 shrink-0">
@@ -263,7 +288,7 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                 onClick={() => setActiveTab(tab)}
                 className={`flex items-center gap-1.5 h-8 px-4 rounded-lg text-xs font-semibold transition-all capitalize ${
                   activeTab === tab
-                    ? 'bg-ink-800 text-white'
+                    ? 'bg-gradient-premium text-white shadow-md'
                     : 'text-ink-500 hover:bg-surface-100'
                 }`}
               >
@@ -483,37 +508,40 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                       <div className="p-3 rounded-xl bg-gradient-to-br from-ink-800 to-ink-700 text-white">
                         <p className="text-xs font-medium opacity-80">Jumlah Saldo Akhir</p>
                         <p className="text-xl font-bold mt-1">
-                          {formatRupiah(saldoList.reduce((sum, s) => sum + s.saldo, 0))}
+                          {formatRupiah(saldoList.reduce((total, item) => total + item.saldo, 0))}
                         </p>
+
                       </div>
 
                       {/* Breakdown per jenis */}
                       <div className="space-y-2">
-                        {saldoList.map(s => (
-                          <div key={s.id_jenis_simpanan} className="p-3 rounded-lg bg-surface-50 border border-surface-200">
+                        {saldoList.map(saldo => (
+                          <div key={saldo.id_jenis_simpanan} className="p-3 rounded-lg bg-surface-50 border border-surface-200">
                             <div className="flex items-start justify-between mb-2">
                               <div>
-                                <p className="text-xs font-semibold text-ink-800">{s.nama_jenis_simpanan}</p>
-                                {s.is_wajib && <span className="text-[9px] text-amber-600 font-semibold">Wajib</span>}
+                                <p className="text-xs font-semibold text-ink-800">{saldo.nama_jenis_simpanan}</p>
+                                {saldo.is_wajib && <span className="text-[9px] text-amber-600 font-semibold">Wajib</span>}
                               </div>
-                              <p className="text-sm font-bold text-ink-800">{formatRupiah(s.saldo)}</p>
+                              <p className="text-sm font-bold text-ink-800">{formatRupiah(saldo.saldo)}</p>
                             </div>
+
                             <div className="grid grid-cols-2 gap-2">
                               <div className="flex items-center gap-1">
                                 <ArrowDownCircle className="w-3 h-3 text-emerald-600 shrink-0" />
                                 <div>
                                   <p className="text-[9px] text-ink-400">Setor</p>
-                                  <p className="text-xs font-semibold text-emerald-600">{formatRupiah(s.total_setor)}</p>
+                                  <p className="text-xs font-semibold text-emerald-600">{formatRupiah(saldo.total_setor)}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
                                 <ArrowUpCircle className="w-3 h-3 text-red-500 shrink-0" />
                                 <div>
                                   <p className="text-[9px] text-ink-400">Tarik</p>
-                                  <p className="text-xs font-semibold text-red-500">{formatRupiah(s.total_tarik)}</p>
+                                  <p className="text-xs font-semibold text-red-500">{formatRupiah(saldo.total_tarik)}</p>
                                 </div>
                               </div>
                             </div>
+
                           </div>
                         ))}
                       </div>
@@ -605,94 +633,220 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
 
                 ) : (
                   <>
-                    {/* Summary badge */}
-                    <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${
-                      checklist.semua_syarat_wajib_terpenuhi
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                        : 'bg-amber-50 border-amber-100 text-amber-700'
-                    }`}>
-                      {checklist.semua_syarat_wajib_terpenuhi
-                        ? <ShieldCheck className="w-4 h-4 shrink-0" />
-                        : <ShieldX    className="w-4 h-4 shrink-0" />
-                      }
-                      {checklist.semua_syarat_wajib_terpenuhi
-                        ? `Semua syarat terpenuhi (${checklist.syarat_terpenuhi}/${checklist.total_syarat})`
-                        : `${checklist.syarat_belum_terpenuhi} syarat belum terpenuhi`
-                      }
-                    </div>
-
-                    {/* List syarat dengan checkbox */}
-                    {checklist.detail_syarat.map(d => {
-                      const isWajib = d.syarat?.is_wajib ?? false
-                      const nama    = d.nama_syarat ?? d.syarat?.nama_syarat ?? 'Syarat'
-                      const deskripsi = d.deskripsi_syarat ?? d.syarat?.deskripsi ?? null
-                      const isToggling = togglingId === d.id_pinjaman_syarat
-
-                      return (
-                        <div
-                          key={d.id_pinjaman_syarat}
-                          className={`flex items-start gap-3 p-3.5 rounded-xl border transition-colors ${
-                            d.is_terpenuhi
-                              ? 'border-emerald-100 bg-emerald-50'
-                              : isWajib
-                              ? 'border-red-100 bg-red-50'
-                              : 'border-surface-200 bg-surface-50'
-                          }`}
-                        >
-                          {/* Checkbox */}
-                          <button
-                            onClick={() => handleToggleSyarat(d.id_pinjaman_syarat, !d.is_terpenuhi)}
-                            disabled={isToggling}
-                            className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              d.is_terpenuhi
-                                ? 'bg-emerald-500 border-emerald-500'
-                                : 'bg-white border-surface-400 hover:border-ink-400'
-                            } disabled:opacity-50`}
-                          >
-                            {isToggling
-                              ? <Loader2 className="w-3 h-3 animate-spin text-white" />
-                              : d.is_terpenuhi
-                              ? <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                              : null
-                            }
-                          </button>
-
-                          {/* Info syarat */}
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-semibold ${d.is_terpenuhi ? 'text-emerald-800' : 'text-ink-800'}`}>
-                              {nama}
-                            </p>
-                            {deskripsi && (
-                              <p className="text-[10px] text-ink-400 mt-0.5 leading-relaxed">{deskripsi}</p>
-                            )}
-                          </div>
-
-                          {/* Badge status */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {isWajib && (
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                                d.is_terpenuhi ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
-                              }`}>
-                                Wajib
-                              </span>
-                            )}
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
-                              d.is_terpenuhi
-                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                : 'bg-red-50 border-red-200 text-red-600'
-                            }`}>
-                              {d.is_terpenuhi ? 'Terpenuhi' : 'Belum Terpenuhi'}
-                            </span>
-                          </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                      {/* ── LEFT: Checklist ── */}
+                      <div className="lg:col-span-5 space-y-4">
+                        <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${
+                          checklist.semua_syarat_wajib_terpenuhi
+                            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                            : 'bg-amber-50 border-amber-100 text-amber-700'
+                        }`}>
+                          {checklist.semua_syarat_wajib_terpenuhi
+                            ? <ShieldCheck className="w-4 h-4 shrink-0" />
+                            : <ShieldX    className="w-4 h-4 shrink-0" />
+                          }
+                          {checklist.semua_syarat_wajib_terpenuhi
+                            ? `Semua syarat terpenuhi (${checklist.syarat_terpenuhi}/${checklist.total_syarat})`
+                            : `${checklist.syarat_belum_terpenuhi} syarat belum terpenuhi`
+                          }
                         </div>
-                      )
-                    })}
 
-                    <p className="text-[10px] text-ink-300 text-center pt-1">
-                      Klik checkbox untuk menandai syarat sebagai terpenuhi atau belum
-                    </p>
-                  </>
-                )}
+                        {/* List syarat — Redesigned Review Workflow */}
+                        <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+
+                      {checklist.detail_syarat.map(d => {
+                        const isWajib = d.syarat?.is_wajib ?? false
+                        const nama    = d.nama_syarat ?? d.syarat?.nama_syarat ?? 'Syarat'
+                        const deskripsi = d.deskripsi_syarat ?? d.syarat?.deskripsi ?? null
+                        const isToggling = togglingId === d.id_pinjaman_syarat
+                        const hasDocument = !!d.dokumen_path
+
+                        return (
+                          <div
+                            key={d.id_pinjaman_syarat}
+                            onClick={() => {
+                              if (d.dokumen_path) {
+                                setActiveDoc(d.dokumen_path)
+                                setSelectedSyaratId(d.id_pinjaman_syarat)
+                              }
+                            }}
+                            className={cn(
+                              "relative group p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer",
+                              selectedSyaratId === d.id_pinjaman_syarat
+                                ? "border-ink-800 bg-white ring-2 ring-ink-800/10"
+                                : d.is_terpenuhi
+                                  ? "bg-emerald-50/50 border-emerald-100 shadow-sm"
+                                  : (isWajib && !hasDocument)
+                                    ? "bg-red-50/50 border-red-50"
+                                    : "bg-surface-50/50 border-surface-100"
+                            )}
+                          >
+
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                {/* Title & Badge */}
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <h4 className={cn(
+                                    "text-sm font-bold tracking-tight",
+                                    d.is_terpenuhi ? "text-emerald-900" : "text-ink-900"
+                                  )}>
+                                    {nama}
+                                  </h4>
+                                  {isWajib && (
+                                    <span className={cn(
+                                      "text-[10px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                                      d.is_terpenuhi ? "bg-emerald-200 text-emerald-800" : "bg-red-200 text-red-700"
+                                    )}>
+                                      Wajib
+                                    </span>
+                                  )}
+                                  {d.is_terpenuhi ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded-full">
+                                      <CheckCircle2 className="w-3 h-3" /> Terverifikasi
+                                    </span>
+                                  ) : hasDocument ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                      <FileText className="w-3 h-3" /> Siap Review
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-ink-400 bg-surface-200/50 px-2 py-0.5 rounded-full">
+                                      <AlertCircle className="w-3 h-3" /> Belum Unggah
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {deskripsi && (
+                                  <p className="text-[11px] text-ink-500 line-clamp-2 leading-relaxed">
+                                    {deskripsi}
+                                  </p>
+                                )}
+
+                                {/* Document Link */}
+                                {hasDocument && (
+                                  <div className="mt-3">
+                                    <a 
+                                      href={getFileUrl(d.dokumen_path)} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2a7fc5] hover:text-[#1e5f96] transition-colors bg-white px-3 py-1.5 rounded-lg border border-surface-200 shadow-sm"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                      Lihat Dokumen
+                                    </a>
+                                  </div>
+
+                                )}
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="shrink-0 flex flex-col items-end">
+                                {d.is_terpenuhi ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleToggleSyarat(d.id_pinjaman_syarat, false)
+                                    }}
+
+                                    disabled={isToggling}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50 transition-all disabled:opacity-50"
+                                  >
+                                    {isToggling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                                    Batal
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleToggleSyarat(d.id_pinjaman_syarat, true)
+                                    }}
+
+                                    disabled={isToggling || (!hasDocument && isWajib)}
+                                    title={(!hasDocument && isWajib) ? "Dokumen wajib belum diunggah" : ""}
+                                    className={cn(
+                                      "flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all shadow-sm active:scale-95",
+                                      hasDocument
+                                        ? "bg-gradient-premium text-white hover:opacity-90"
+                                        : "bg-surface-200 text-ink-300 cursor-not-allowed"
+                                    )}
+                                  >
+                                    {isToggling ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                    Verifikasi
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                        </div>
+
+                        <p className="text-[10px] text-ink-300 text-center pt-1">
+                          Klik untuk melihat dokumen dan lakukan verifikasi
+                        </p>
+                      </div>
+
+                      {/* ── RIGHT: Document Viewer ── */}
+                      <div className="lg:col-span-7 bg-surface-100 rounded-2xl border border-surface-200 overflow-hidden flex flex-col h-[70vh] sticky top-0">
+                        <div className="bg-white px-4 py-3 border-b border-surface-200 flex items-center justify-between shrink-0">
+                          <h4 className="text-xs font-bold text-ink-800 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-ink-400" />
+                            Pratinjau Dokumen
+                          </h4>
+                          {activeDoc && (
+                            <a 
+                              href={getFileUrl(activeDoc)} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-bold text-accent-600 hover:underline flex items-center gap-1"
+                            >
+                              Buka di Tab Baru <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 overflow-auto bg-surface-200/50 flex items-center justify-center p-4">
+                          {activeDoc ? (
+                            isImage(activeDoc) ? (
+                              <img 
+                                src={getFileUrl(activeDoc)} 
+                                alt="Pratinjau Dokumen" 
+                                className="max-w-full max-h-full object-contain rounded shadow-lg animate-fade-in"
+                              />
+                            ) : isPdf(activeDoc) ? (
+                              <iframe 
+                                src={`${getFileUrl(activeDoc)}#toolbar=0`} 
+                                className="w-full h-full rounded shadow-lg"
+                                title="PDF Viewer"
+                              />
+                            ) : (
+                              <div className="text-center p-8">
+                                <AlertCircle className="w-12 h-12 text-ink-200 mx-auto mb-3" />
+                                <p className="text-sm font-semibold text-ink-400">Format file tidak didukung untuk pratinjau</p>
+                                <a 
+                                  href={getFileUrl(activeDoc)} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="mt-4 inline-block px-4 py-2 bg-ink-800 text-white rounded-lg text-xs"
+                                >
+                                  Unduh/Lihat Langsung
+                                </a>
+                              </div>
+                            )
+                          ) : (
+                            <div className="text-center p-12">
+                              <div className="w-16 h-16 bg-surface-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FileText className="w-8 h-8 text-ink-200" />
+                              </div>
+                              <p className="text-sm font-bold text-ink-400">Pilih dokumen untuk melihat pratinjau</p>
+                              <p className="text-xs text-ink-300 mt-1 uppercase tracking-widest">Workspace Verifikasi</p>
+                            </div>
+                          )}
+                        </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               </div>
             )}
 

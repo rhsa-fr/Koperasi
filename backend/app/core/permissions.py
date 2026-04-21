@@ -9,67 +9,17 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.core.security import decode_access_token
-from app.models.role import MasterRole, MasterMenu, MasterRoleMenu
+from app.models.role import MasterRole, MasterMenu, MasterRoleMenu, UserPermission
 
 
 security = HTTPBearer()
 
 
 # ============================================================================
-# PERMISSION MATRIX - Role-Based Access Control
+# PERMISSION MATRIX — now fully driven by database (master_role_menu)
+# The old hardcoded PERMISSIONS dict has been removed.
+# Permissions are fetched at runtime via get_user_permissions_from_db().
 # ============================================================================
-PERMISSIONS = {
-    "super_admin": {
-        "users": ["create", "read", "update", "delete", "activate", "deactivate"],
-        "anggota": ["create", "read", "update", "delete", "export"],
-        "profil_anggota": ["create", "read", "update", "delete"],
-        "jenis_simpanan": ["create", "read", "update", "delete"],
-        "simpanan": ["create", "read", "update", "delete", "setor", "tarik", "export"],
-        "pinjaman": ["create", "read", "update", "delete", "approve", "reject", "export"],
-        "angsuran": ["create", "read", "update", "delete", "bayar", "export"],
-        "laporan": ["read", "export"],
-        "dashboard": ["read"],
-        "rbac": ["create", "read", "update", "delete"],
-        "sidebar": ["create", "read", "update", "delete"],
-        "menus": ["create", "read", "update", "delete"],
-        "audit": ["read", "export"],
-        "roles": ["create", "read", "update", "delete", "manage"],
-    },
-    "admin": {
-        "users": ["create", "read", "update", "delete", "activate", "deactivate"],
-        "anggota": ["create", "read", "update", "delete", "export"],
-        "profil_anggota": ["create", "read", "update", "delete"],
-        "jenis_simpanan": ["create", "read", "update", "delete"],
-        "simpanan": ["create", "read", "update", "delete", "setor", "tarik", "export"],
-        "pinjaman": ["create", "read", "update", "delete", "approve", "reject", "export"],
-        "angsuran": ["create", "read", "update", "delete", "bayar", "export"],
-        "laporan": ["read", "export"],
-        "dashboard": ["read"],
-        "roles": ["read"],
-    },
-    "ketua": {
-        "users": ["read"],
-        "anggota": ["read", "export"],
-        "profil_anggota": ["read"],
-        "jenis_simpanan": ["read"],
-        "simpanan": ["read", "export"],
-        "pinjaman": ["read", "approve", "reject", "export"],
-        "angsuran": ["read", "export"],
-        "laporan": ["read", "export"],
-        "dashboard": ["read"],
-    },
-    "bendahara": {
-        "users": [],
-        "anggota": ["read"],
-        "profil_anggota": ["read"],
-        "jenis_simpanan": ["read"],
-        "simpanan": ["create", "read", "setor", "tarik", "export"],
-        "pinjaman": ["create", "read", "export"],
-        "angsuran": ["create", "read", "bayar", "export"],
-        "laporan": ["read"],
-        "dashboard": ["read"],
-    },
-}
 
 
 # ============================================================================
@@ -116,6 +66,49 @@ def get_user_permissions_from_db(db: Session, role_name: str) -> dict:
         permissions[menu].append(action)
         
     return permissions
+
+
+def get_user_effective_permissions(db: Session, user_id: int, role_name: str) -> dict:
+    """
+    Fetch and merge permissions from both Role and User-specific overrides.
+    User overrides take precedence (Enable or Revoke).
+    """
+    # 1. Get role permissions
+    role_results = db.query(MasterMenu.menu, MasterMenu.action).join(
+        MasterRoleMenu, MasterMenu.id_permission == MasterRoleMenu.permission_id
+    ).join(
+        MasterRole, MasterRoleMenu.role_id == MasterRole.id_role
+    ).filter(
+        MasterRole.name == role_name
+    ).all()
+    
+    # 2. Get user overrides
+    user_overrides = db.query(MasterMenu.menu, MasterMenu.action, UserPermission.is_granted).join(
+        UserPermission, MasterMenu.id_permission == UserPermission.permission_id
+    ).filter(
+        UserPermission.user_id == user_id
+    ).all()
+    
+    permissions_map = {}
+    
+    # Apply Role Permissions
+    for menu, action in role_results:
+        if menu not in permissions_map:
+            permissions_map[menu] = set()
+        permissions_map[menu].add(action)
+    
+    # Apply User Overrides (Merging / Removing)
+    for menu, action, is_granted in user_overrides:
+        if is_granted:
+            if menu not in permissions_map:
+                permissions_map[menu] = set()
+            permissions_map[menu].add(action)
+        else:
+            if menu in permissions_map and action in permissions_map[menu]:
+                permissions_map[menu].remove(action)
+    
+    # Convert sets back to lists for JSON response
+    return {k: list(v) for k, v in permissions_map.items()}
 
 
 def check_permission(user_role: str, resource: str, action: str) -> None:
@@ -165,10 +158,10 @@ def get_current_user(
         )
     
     role = payload.get("role")
+    user_id = int(payload.get("sub"))
     
-    # ── KEY CHANGE: Fetch latest permissions from DB ──
-    # This makes the RBAC system dynamic
-    permissions = get_user_permissions_from_db(db, role)
+    # ── KEY CHANGE: Fetch latest permissions (Role + User Overrides) ──
+    permissions = get_user_effective_permissions(db, user_id, role)
     
     return {
         "id": int(payload.get("sub")),
@@ -250,14 +243,14 @@ def can_user_manage_simpanan(user_role: str) -> bool:
             has_permission(user_role, "simpanan", "tarik"))
 
 
-def get_user_permissions(user_role: str) -> dict:
+def get_user_permissions(user_role: str, db: Session = None) -> dict:
     """
-    Get all permissions for a user role.
-    
-    Returns:
-        Dict of resources and their allowed actions
+    Get all permissions for a user role from database.
+    Falls back to empty dict if no DB session provided.
     """
-    return PERMISSIONS.get(user_role, {})
+    if db:
+        return get_user_permissions_from_db(db, user_role)
+    return {}
 
 
 # ============================================================================
@@ -266,7 +259,7 @@ def get_user_permissions(user_role: str) -> dict:
 
 def is_protected_role(role_name: str) -> bool:
     """System roles that cannot be deleted or modified by normal admins."""
-    return role_name.lower() in ["super_admin", "admin", "ketua", "bendahara"]
+    return role_name.lower() == "super_admin"
 
 
 def can_modify_role(user_role: str, target_role: str) -> bool:

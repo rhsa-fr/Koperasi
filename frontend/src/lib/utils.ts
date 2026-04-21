@@ -21,3 +21,22 @@ export function formatDate(dateStr: string | Date): string {
     year: 'numeric',
   }).format(date)
 }
+
+export function getFileUrl(path: string | null): string {
+  if (!path) return ''
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  return `${apiBase}/uploads/${path}`
+}
+
+export function isImage(filename: string | null): boolean {
+  if (!filename) return false
+  const ext = filename.split('.').pop()?.toLowerCase()
+  return ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')
+}
+
+export function isPdf(filename: string | null): boolean {
+  if (!filename) return false
+  const ext = filename.split('.').pop()?.toLowerCase()
+  return ext === 'pdf'
+}
+

@@ -27,6 +27,7 @@ from app.api.v1.endpoints import (
     setting,
     roles,
     sidebar,
+    audit,
 )
 
 router = APIRouter()
@@ -41,3 +42,4 @@ router.include_router(syarat_peminjaman.router, prefix="/syarat-peminjaman", tag
 router.include_router(setting.router,           prefix="/setting",           tags=["Setting"])
 router.include_router(roles.router,             prefix="/roles",             tags=["Roles & RBAC"])
 router.include_router(sidebar.router,           prefix="/sidebar",           tags=["Sidebar Management"])
+router.include_router(audit.router,             prefix="/audit",             tags=["Audit Logs"])

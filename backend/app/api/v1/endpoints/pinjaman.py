@@ -2,7 +2,7 @@
 # FILE: app/api/v1/endpoints/pinjaman.py
 # ============================================================================
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
@@ -13,7 +13,9 @@ from app.schemas.pinjaman import (
 )
 from app.schemas.common import PaginatedResponse, PaginationMeta
 from app.core.permissions import get_current_user, require_permission
-from app.services import pinjaman_service
+from app.services import pinjaman_service, syarat_peminjaman_service
+from app.core.upload import save_uploaded_file
+from app.schemas.syarat_peminjaman import PinjamanSyaratResponse, PinjamanSyaratUpdate
 
 router = APIRouter()
 
@@ -319,6 +321,30 @@ def reject_pinjaman(
     }
     
     return PinjamanResponse(**response_data)
+@router.post("/syarat/{id_pinjaman_syarat}/upload", response_model=PinjamanSyaratResponse)
+def upload_pinjaman_syarat(
+    id_pinjaman_syarat: int,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Upload dokumen untuk syarat pinjaman"""
+    # 1. Get current pinjaman syarat to fetch id_pinjaman for folder naming
+    ps = syarat_peminjaman_service.get_pinjaman_syarat_by_id(db, id_pinjaman_syarat)
+    
+    # 2. Save file
+    # Format folder: pinjaman/{id_pinjaman}
+    subfolder = f"pinjaman/{ps.id_pinjaman}"
+    file_path = save_uploaded_file(file, subfolder=subfolder)
 
-
-
+    # 3. Update database
+    update_data = PinjamanSyaratUpdate(
+        dokumen_path=file_path,
+        is_terpenuhi=True # At least file is uploaded
+    )
+    
+    return syarat_peminjaman_service.update_pinjaman_syarat(
+        db=db,
+        id_pinjaman_syarat=id_pinjaman_syarat,
+        data=update_data
+    )

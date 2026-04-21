@@ -7,10 +7,12 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User
+from app.models.role import MasterRole, UserPermission, MasterMenu
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserChangePassword
+from app.schemas.user_permission import UserPermissionSync
 from app.schemas.common import PaginatedResponse, PaginationMeta, MessageResponse
 from app.core.security import hash_password, verify_password
-from app.core.permissions import get_current_user, require_permission
+from app.core.permissions import get_current_user, require_permission, log_audit_action
 from app.core.exceptions import NotFoundException, ConflictException, BadRequestException
 
 router = APIRouter()
@@ -53,6 +55,11 @@ def create_user(
     existing_user = db.query(User).filter(User.username == data.username).first()
     if existing_user:
         raise ConflictException("Username sudah digunakan")
+    
+    # Check if role exists
+    role_exists = db.query(MasterRole).filter(MasterRole.name == data.role).first()
+    if not role_exists:
+        raise BadRequestException(f"Role '{data.role}' tidak ditemukan di sistem")
     
     # Hash password
     hashed_password = hash_password(data.password)
@@ -115,6 +122,9 @@ def update_user(
     
     # Update role
     if data.role is not None:
+        role_exists = db.query(MasterRole).filter(MasterRole.name == data.role).first()
+        if not role_exists:
+            raise BadRequestException(f"Role '{data.role}' tidak ditemukan di sistem")
         user.role = data.role
     
     # Update is_active
@@ -168,3 +178,63 @@ def change_password(
     db.commit()
     
     return MessageResponse(message="Password berhasil diubah")
+
+
+@router.get("/{id_user}/permissions")
+def get_user_custom_permissions(
+    id_user: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_permission("users", "read"))
+):
+    """Get manual overrides for a specific user."""
+    overrides = db.query(UserPermission, MasterMenu.menu, MasterMenu.action).join(
+        MasterMenu, UserPermission.permission_id == MasterMenu.id_permission
+    ).filter(
+        UserPermission.user_id == id_user
+    ).all()
+    
+    return [
+        {
+            "id_user_permission": o.UserPermission.id_user_permission,
+            "permission_id": o.UserPermission.permission_id,
+            "is_granted": o.UserPermission.is_granted,
+            "menu": o.menu,
+            "action": o.action
+        } for o in overrides
+    ]
+
+
+@router.put("/{id_user}/permissions")
+def sync_user_custom_permissions(
+    id_user: int,
+    data: UserPermissionSync,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_permission("users", "update"))
+):
+    """Sync manual overrides for a user."""
+    # 1. Clear existing overrides
+    db.query(UserPermission).filter(UserPermission.user_id == id_user).delete()
+    
+    # 2. Add new overrides
+    for p in data.permissions:
+        db_perm = UserPermission(
+            user_id=id_user,
+            permission_id=p.permission_id,
+            is_granted=p.is_granted
+        )
+        db.add(db_perm)
+    
+    db.commit()
+    
+    # Log audit
+    log_audit_action(
+        user_id=current_user["id"],
+        username=current_user["username"],
+        role=current_user["role"],
+        action="update_user_permissions",
+        resource="users",
+        target_id=id_user,
+        details={"permissions_count": len(data.permissions)}
+    )
+    
+    return {"message": "User permissions synced successfully"}

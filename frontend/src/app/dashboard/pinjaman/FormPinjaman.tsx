@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import {
   X, Calculator, CheckCircle2, AlertCircle,
-  FileText, Loader2, ChevronDown, User
+  FileText, Loader2, ChevronDown, User, Plus
 } from 'lucide-react'
 import {
   Pinjaman, PinjamanCreatePayload, Anggota, SyaratItem,
-  getSyaratByNominal, hitungPinjaman, formatRupiah
+  getSyaratByNominal, hitungPinjaman, formatRupiah,
+  SyaratChecklistResponse
 } from './types'
+import { cn } from '@/lib/utils'
 import { api } from '@/lib/axios'
 
 interface Props {
@@ -52,6 +54,8 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
   const [tanggal, setTanggal]     = useState(new Date().toISOString().split('T')[0])
   const [kalkulasi, setKalkulasi] = useState({ totalBunga: 0, totalPinjaman: 0, nominalAngsuran: 0 })
   const [syaratList, setSyaratList] = useState<SyaratItem[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({})
+  const [uploadingFiles, setUploadingFiles] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState<string | null>(null)
 
@@ -109,6 +113,13 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
     if (!nominal || nominal <= 0) { setError('Masukkan nominal pinjaman yang valid'); return }
     if (!keperluan.trim())        { setError('Keperluan pinjaman harus diisi'); return }
 
+    // ── Validasi file wajib ──
+    const missingWajib = syaratList.find(s => s.is_wajib && !selectedFiles[s.kode])
+    if (missingWajib) {
+      setError(`Dokumen wajib belum diunggah: ${missingWajib.nama}`)
+      return
+    }
+
     setLoading(true)
     try {
       const payload: PinjamanCreatePayload = {
@@ -119,8 +130,40 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
         lama_angsuran:     lama,
         keperluan,
       }
-      const result = await api.post<Pinjaman>('/pinjaman', payload)
-      onSuccess(result)
+      
+      const pinjaman = await api.post<Pinjaman>('/pinjaman', payload)
+      
+      // ── Handle File Uploads ──
+      const fileEntries = Object.entries(selectedFiles)
+      if (fileEntries.length > 0) {
+        setUploadingFiles(true)
+        try {
+          // 1. Ambil checklist untuk dapat id_pinjaman_syarat
+          const checklistRes = await api.get<SyaratChecklistResponse>(
+            `/syarat-peminjaman/pinjaman/${pinjaman.id_pinjaman}/checklist`
+          )
+          
+          // 2. Upload setiap file
+          for (const [kode, file] of fileEntries) {
+            const ps = checklistRes.detail_syarat.find(d => d.syarat?.kode_syarat === kode)
+            if (ps) {
+              const formData = new FormData()
+              formData.append('file', file)
+              await api.post(`/pinjaman/syarat/${ps.id_pinjaman_syarat}/upload`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+              })
+            }
+          }
+        } catch (e) {
+          console.error("Gagal upload dokumen:", e)
+          // Kita tetap anggap sukses ajukan pinjaman, tapi beri peringatan
+          setError("Pinjaman berhasil diajukan, tapi beberapa dokumen gagal diunggah. Silakan upload nanti di detail pinjaman.")
+        } finally {
+          setUploadingFiles(false)
+        }
+      }
+
+      onSuccess(pinjaman)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Gagal membuat pengajuan')
     } finally {
@@ -335,21 +378,64 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
                 <p className="text-[11px] text-ink-400 mb-3">
                   Siapkan dokumen berikut. Ketua akan memverifikasi kelengkapan syarat setelah pengajuan dikirim.
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {syaratList.map(s => (
                     <div
                       key={s.kode}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-surface-200 bg-surface-50"
+                      className="p-3 rounded-xl border border-surface-200 bg-surface-50 space-y-3"
                     >
-                      <FileText className={`w-4 h-4 shrink-0 ${s.is_wajib ? 'text-red-400' : 'text-ink-300'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-ink-800">{s.nama}</p>
-                        <p className="text-[10px] text-ink-400 mt-0.5">{s.deskripsi}</p>
+                      <div className="flex items-center gap-3">
+                        <FileText className={`w-4 h-4 shrink-0 ${s.is_wajib ? 'text-red-400' : 'text-ink-300'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-ink-800">{s.nama}</p>
+                          <p className="text-[10px] text-ink-400 mt-0.5">{s.deskripsi}</p>
+                        </div>
+                        {s.is_wajib
+                          ? <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold shrink-0">WAJIB</span>
+                          : <span className="text-[9px] bg-surface-200 text-ink-400 px-1.5 py-0.5 rounded-full font-semibold shrink-0">OPSIONAL</span>
+                        }
                       </div>
-                      {s.is_wajib
-                        ? <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold shrink-0">WAJIB</span>
-                        : <span className="text-[9px] bg-surface-200 text-ink-400 px-1.5 py-0.5 rounded-full font-semibold shrink-0">OPSIONAL</span>
-                      }
+                      
+                      {/* File Upload Input */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`file-${s.kode}`}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setSelectedFiles(prev => ({ ...prev, [s.kode]: file }))
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`file-${s.kode}`}
+                          className={cn(
+                            "flex-1 flex items-center justify-between px-3 py-2 rounded-lg border border-dashed transition-all cursor-pointer text-[11px]",
+                            selectedFiles[s.kode] 
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-700" 
+                              : "bg-white border-surface-300 text-ink-400 hover:bg-surface-100"
+                          )}
+                        >
+                          <span className="truncate max-w-[200px]">
+                            {selectedFiles[s.kode] ? selectedFiles[s.kode].name : "Pilih file dokumen..."}
+                          </span>
+                          <Plus className="w-3.5 h-3.5" />
+                        </label>
+                        {selectedFiles[s.kode] && (
+                          <button 
+                            onClick={() => setSelectedFiles(prev => {
+                              const next = { ...prev }
+                              delete next[s.kode]
+                              return next
+                            })}
+                            className="p-2 text-ink-300 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -367,11 +453,11 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
               Batal
             </button>
             <button
-              onClick={handleSubmit} disabled={loading}
+              onClick={handleSubmit} disabled={loading || uploadingFiles}
               className="flex items-center gap-2 px-5 py-2 rounded-xl bg-ink-800 text-white text-sm font-semibold hover:bg-ink-700 transition-colors disabled:opacity-60"
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? 'Menyimpan...' : 'Ajukan Pinjaman'}
+              {(loading || uploadingFiles) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {uploadingFiles ? 'Mengunggah...' : loading ? 'Menyimpan...' : 'Ajukan Pinjaman'}
             </button>
           </div>
 
