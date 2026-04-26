@@ -40,6 +40,15 @@ apiClient.interceptors.response.use(
     const status = error.response?.status
 
     if (status === 401) {
+      // Jangan timpa pesan error jika sedang mencoba endpoint login
+      if (error.config?.url?.includes('/login')) {
+        const detail = error.response?.data?.detail
+        const message = typeof detail === 'string' 
+          ? detail 
+          : (error.response?.data?.message || 'Username atau password salah')
+        return Promise.reject(new Error(message))
+      }
+
       tokenStorage.clear()
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.replace('/login')
