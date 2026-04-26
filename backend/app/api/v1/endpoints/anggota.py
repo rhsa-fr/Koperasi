@@ -266,31 +266,38 @@ def upsert_profil_anggota(
 
 # ── POST /anggota/{id}/upload-foto ────────────────────────────────────────────
 @router.post("/{id_anggota}/upload-foto", response_model=ProfilAnggotaResponse)
-def upload_foto_anggota(
+async def upload_foto_anggota(
     id_anggota: int,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Upload foto profil anggota"""
+    """Upload foto profil anggota (STORED AS BASE64 FOR VERCEL PERSISTENCE)"""
+    import base64
+    
     anggota = db.query(Anggota).filter(Anggota.id_anggota == id_anggota).first()
     if not anggota:
         raise NotFoundException("Anggota tidak ditemukan")
 
     profil = db.query(ProfilAnggota).filter(ProfilAnggota.id_anggota == id_anggota).first()
     if not profil:
-        # Jika profil belum ada, buat profil minimal dulu
         profil = ProfilAnggota(id_anggota=id_anggota)
         db.add(profil)
         db.flush()
 
-    # Hapus foto lama jika ada
-    if profil.foto_profil:
-        delete_file(profil.foto_profil)
-
-    # Simpan file baru
-    file_path = save_uploaded_file(file, subfolder="profil")
-    profil.foto_profil = file_path
+    # 1. Read file content
+    content = await file.read()
+    
+    # 2. Convert to Base64 Data URL
+    # This ensures the image is stored in DB (Neon) and won't disappear on Vercel
+    encoded = base64.b64encode(content).decode('utf-8')
+    data_url = f"data:{file.content_type};base64,{encoded}"
+    
+    # 3. Save to database
+    profil.foto_profil = data_url
+    
+    # Also sync to main Anggota table if needed (redundant but safe)
+    anggota.foto_profil = data_url
 
     db.commit()
     db.refresh(profil)

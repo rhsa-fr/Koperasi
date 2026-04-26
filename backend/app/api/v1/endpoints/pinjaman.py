@@ -293,25 +293,26 @@ def reject_pinjaman(
     
     return PinjamanResponse(**response_data)
 @router.post("/syarat/{id_pinjaman_syarat}/upload", response_model=PinjamanSyaratResponse)
-def upload_pinjaman_syarat(
+async def upload_pinjaman_syarat(
     id_pinjaman_syarat: int,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Upload dokumen untuk syarat pinjaman"""
-    # 1. Get current pinjaman syarat to fetch id_pinjaman for folder naming
-    ps = syarat_peminjaman_service.get_pinjaman_syarat_by_id(db, id_pinjaman_syarat)
+    """Upload dokumen untuk syarat pinjaman (STORED AS BASE64 FOR VERCEL PERSISTENCE)"""
+    import base64
     
-    # 2. Save file
-    # Format folder: pinjaman/{id_pinjaman}
-    subfolder = f"pinjaman/{ps.id_pinjaman}"
-    file_path = save_uploaded_file(file, subfolder=subfolder)
+    # 1. Read file content
+    content = await file.read()
+    
+    # 2. Convert to Base64 Data URL
+    encoded = base64.b64encode(content).decode('utf-8')
+    data_url = f"data:{file.content_type};base64,{encoded}"
 
-    # 3. Update database
+    # 3. Update database directly (no more save_uploaded_file needed)
     update_data = PinjamanSyaratUpdate(
-        dokumen_path=file_path,
-        is_terpenuhi=True # At least file is uploaded
+        dokumen_path=data_url,
+        is_terpenuhi=True 
     )
     
     return syarat_peminjaman_service.update_pinjaman_syarat(

@@ -24,7 +24,7 @@ export default function Toast({ type, message, onClose, duration = 3000 }: Toast
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsExiting(true)
-      setTimeout(onClose, 500) // matches animation duration
+      setTimeout(onClose, 500)
     }, duration)
 
     return () => clearTimeout(timer)
@@ -34,37 +34,58 @@ export default function Toast({ type, message, onClose, duration = 3000 }: Toast
     success: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
     error: <AlertCircle className="w-5 h-5 text-rose-500" />,
     info: <Info className="w-5 h-5 text-blue-500" />,
-    loading: <Loader2 className="w-5 h-5 text-ink-400 animate-spin" />,
+    loading: <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />,
   }
 
-  const bgColors = {
-    success: 'bg-emerald-50 border-emerald-100',
-    error: 'bg-rose-50 border-rose-100',
-    info: 'bg-blue-50 border-blue-100',
-    loading: 'bg-white border-surface-200',
+  const styles = {
+    success: 'border-emerald-100 shadow-emerald-500/10',
+    error: 'border-rose-100 shadow-rose-500/10',
+    info: 'border-blue-100 shadow-blue-500/10',
+    loading: 'border-slate-100 shadow-slate-500/10',
   }
-
 
   return (
     <div className={cn(
-      "fixed top-6 right-6 z-[100] flex items-center gap-3 p-4 pr-12 rounded-2xl border shadow-2xl",
-      "animate-in slide-in-from-right-full duration-300",
-      isExiting && "animate-out fade-out slide-out-to-right-full fill-mode-forwards",
-      bgColors[type]
+      "fixed top-6 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-[9999]",
+      "flex items-center gap-3 py-3 px-4 min-w-[280px] max-w-[90vw] rounded-2xl border",
+      "bg-white/80 backdrop-blur-xl shadow-2xl",
+      "animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300",
+      isExiting && "animate-out fade-out zoom-out-95 slide-out-to-top-2 fill-mode-forwards",
+      styles[type]
     )}>
-      <div className="shrink-0">{icons[type]}</div>
-      <div className="flex-1">
-        <p className="text-sm font-bold text-ink-800 leading-tight">{message}</p>
+      <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl bg-white shadow-sm border border-black/[0.03]">
+        {icons[type]}
       </div>
+      
+      <div className="flex-1 mr-2">
+        <p className="text-[13px] font-bold text-slate-800 leading-tight">
+          {message}
+        </p>
+      </div>
+
       <button 
         onClick={() => {
           setIsExiting(true)
           setTimeout(onClose, 500)
         }}
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-ink-300 hover:bg-black/5 hover:text-ink-600 transition-all"
+        className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-90"
       >
         <X className="w-4 h-4" />
       </button>
+
+      {/* Progress Bar Animation */}
+      <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-slate-100/50 overflow-hidden rounded-full">
+        <div 
+          className={cn(
+            "h-full transition-all duration-[3000ms] ease-linear",
+            type === 'success' ? 'bg-emerald-500' : 
+            type === 'error' ? 'bg-rose-500' : 
+            type === 'info' ? 'bg-blue-500' : 'bg-slate-400'
+          )}
+          style={{ width: isExiting ? '0%' : '100%' }}
+        />
+      </div>
     </div>
   )
 }
+

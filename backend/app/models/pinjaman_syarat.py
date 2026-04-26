@@ -15,7 +15,7 @@ class PinjamanSyarat(Base):
     id_pinjaman = Column(Integer, ForeignKey("pinjaman.id_pinjaman", ondelete="CASCADE", onupdate="CASCADE"), nullable=False, index=True)
     id_syarat = Column(Integer, ForeignKey("syarat_peminjaman.id_syarat", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False, index=True)
     is_terpenuhi = Column(Boolean, default=False, comment="Apakah syarat sudah terpenuhi")
-    dokumen_path = Column(String(255), nullable=True, comment="Path file dokumen jika ada")
+    dokumen_path = Column(Text, nullable=True, comment="Data Base64 dokumen")
     catatan = Column(Text, nullable=True, comment="Catatan terkait pemenuhan syarat")
     tanggal_verifikasi = Column(TIMESTAMP, nullable=True, comment="Tanggal verifikasi syarat")
     id_user_verifikasi = Column(Integer, ForeignKey("user.id_user", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)

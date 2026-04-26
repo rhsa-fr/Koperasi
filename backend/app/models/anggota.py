@@ -21,6 +21,7 @@ class Anggota(Base):
     id_anggota        = Column(Integer, primary_key=True, index=True, autoincrement=True)
     no_anggota        = Column(String(20), unique=True, nullable=False, index=True)
     nama_lengkap      = Column(String(100), nullable=False, index=True)
+    foto_profil       = Column(Text, nullable=True)
     email             = Column(String(100), unique=True)
     no_telepon        = Column(String(15))
     tanggal_bergabung = Column(Date, nullable=False)

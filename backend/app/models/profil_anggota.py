@@ -39,7 +39,7 @@ class ProfilAnggota(Base):
     provinsi    = Column(String(50))
     kode_pos    = Column(String(10))
     pekerjaan   = Column(String(50))
-    foto_profil = Column(String(255))
+    foto_profil = Column(Text)
     created_at  = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at  = Column(TIMESTAMP, server_default=func.current_timestamp(),
                          onupdate=func.current_timestamp())
