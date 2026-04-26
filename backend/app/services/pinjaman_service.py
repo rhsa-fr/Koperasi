@@ -31,7 +31,7 @@ def calculate_pinjaman(
     lama_angsuran: int
 ) -> PinjamanCalculation:
     """Kalkulasi pinjaman"""
-    total_bunga = nominal_pinjaman * (bunga_persen / 100)
+    total_bunga = nominal_pinjaman * (bunga_persen / 100) * lama_angsuran
     total_pinjaman = nominal_pinjaman + total_bunga
     nominal_angsuran = total_pinjaman / lama_angsuran
     

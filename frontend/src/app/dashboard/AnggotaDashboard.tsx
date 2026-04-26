@@ -53,8 +53,9 @@ export default function AnggotaDashboard({ user }: { user: any }) {
     )
   }
 
-  const activeLoanStr = profile?.total_pinjaman_aktif || 0
-  const hasActiveLoan = activeLoanStr > 0
+  const activeLoanVal = profile?.total_pinjaman_aktif || 0
+  const pendingLoanVal = profile?.total_pinjaman_pending || 0
+  const hasActiveLoan = activeLoanVal > 0 || pendingLoanVal > 0
 
   return (
     <div className="animate-fade-in relative pb-10 lg:max-w-5xl lg:mx-auto">
@@ -144,28 +145,63 @@ export default function AnggotaDashboard({ user }: { user: any }) {
       {hasActiveLoan ? (
         <div 
           onClick={() => router.push('/dashboard/pinjaman')}
-          className="bg-amber-50 border border-amber-200 rounded-3xl p-5 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer shadow-sm"
+          className={cn(
+            "rounded-3xl p-5 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer shadow-sm border",
+            pendingLoanVal > 0 && activeLoanVal === 0 
+              ? "bg-blue-50 border-blue-200" 
+              : "bg-amber-50 border-amber-200"
+          )}
         >
            <div className="absolute top-0 right-0 p-4 opacity-10">
-             <Clock className="w-24 h-24 text-amber-600 -mr-6 -mt-6" />
+             {pendingLoanVal > 0 && activeLoanVal === 0 
+               ? <Clock className="w-24 h-24 text-blue-600 -mr-6 -mt-6" />
+               : <CreditCard className="w-24 h-24 text-amber-600 -mr-6 -mt-6" />
+             }
            </div>
            <div className="flex items-start gap-4 mb-3 relative z-10">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 flex-shrink-0">
-                 <CreditCard className="w-6 h-6" />
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0",
+                pendingLoanVal > 0 && activeLoanVal === 0 
+                  ? "bg-blue-500 shadow-blue-500/30" 
+                  : "bg-amber-500 shadow-amber-500/30"
+              )}>
+                 {pendingLoanVal > 0 && activeLoanVal === 0 ? <Clock className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
               </div>
               <div className="flex-1">
-                 <p className="text-xs font-bold text-amber-800 mb-0.5">Tagihan Pinjaman Anda</p>
-                 <p className="text-[10px] text-amber-700/80 font-medium leading-tight pr-4">Pantau sisa pinjaman yang perlu lunas agar bebas hambatan.</p>
-              </div>
-           </div>
-           <div className="bg-white rounded-2xl p-4 flex items-center justify-between border border-amber-100 shadow-sm relative z-10">
-              <div>
-                 <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-0.5">Total Sisa</p>
-                 <p className="text-xl font-extrabold text-ink-900 tracking-tight">
-                   {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(profile?.total_pinjaman_aktif)}
+                 <p className={cn(
+                   "text-xs font-bold mb-0.5",
+                   pendingLoanVal > 0 && activeLoanVal === 0 ? "text-blue-800" : "text-amber-800"
+                 )}>
+                   {pendingLoanVal > 0 && activeLoanVal === 0 ? "Pengajuan Sedang Diproses" : "Tagihan Pinjaman Anda"}
+                 </p>
+                 <p className={cn(
+                   "text-[10px] font-medium leading-tight pr-4",
+                   pendingLoanVal > 0 && activeLoanVal === 0 ? "text-blue-700/80" : "text-amber-700/80"
+                 )}>
+                   {pendingLoanVal > 0 && activeLoanVal === 0 
+                     ? "Mohon tunggu verifikasi dari Ketua Koperasi untuk pencairan dana."
+                     : "Pantau sisa pinjaman yang perlu lunas agar bebas hambatan."}
                  </p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
+           </div>
+           <div className={cn(
+             "rounded-2xl p-4 flex items-center justify-between border shadow-sm relative z-10",
+             pendingLoanVal > 0 && activeLoanVal === 0 ? "bg-white border-blue-100" : "bg-white border-amber-100"
+           )}>
+              <div>
+                 <p className="text-[10px] font-bold text-ink-300 uppercase tracking-widest mb-0.5">
+                   {pendingLoanVal > 0 && activeLoanVal === 0 ? "Nominal Diajukan" : "Total Sisa"}
+                 </p>
+                 <p className="text-xl font-extrabold text-ink-900 tracking-tight">
+                   {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(
+                     activeLoanVal > 0 ? activeLoanVal : pendingLoanVal
+                   )}
+                 </p>
+              </div>
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center",
+                pendingLoanVal > 0 && activeLoanVal === 0 ? "bg-blue-50 text-blue-500" : "bg-amber-50 text-amber-500"
+              )}>
                  <ChevronRight className="w-4 h-4" />
               </div>
            </div>

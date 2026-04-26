@@ -30,6 +30,7 @@ from app.api.v1.endpoints import (
     sidebar,
     audit,
     notifikasi,
+    dashboard,
 )
 
 router = APIRouter()
@@ -46,3 +47,4 @@ router.include_router(roles.router,             prefix="/roles",             tag
 router.include_router(sidebar.router,           prefix="/sidebar",           tags=["Sidebar Management"])
 router.include_router(audit.router,             prefix="/audit",             tags=["Audit Logs"])
 router.include_router(notifikasi.router,        prefix="/notifikasi",        tags=["notifikasi"])
+router.include_router(dashboard.router,         prefix="/dashboard",         tags=["Dashboard"])

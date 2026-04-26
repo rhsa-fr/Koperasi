@@ -157,15 +157,21 @@ def get_anggota_detail(
 
     total_simpanan_result = float(total_setor_result or 0) - float(total_tarik_result or 0)
 
-    total_pinjaman_result = db.query(sqlfunc.sum(Pinjaman.sisa_pinjaman)).filter(
+    total_pinjaman_aktif_result = db.query(sqlfunc.sum(Pinjaman.sisa_pinjaman)).filter(
         Pinjaman.id_anggota == id_anggota,
         Pinjaman.status == StatusPinjaman.DISETUJUI,
+    ).scalar()
+
+    total_pinjaman_pending_result = db.query(sqlfunc.sum(Pinjaman.nominal_pinjaman)).filter(
+        Pinjaman.id_anggota == id_anggota,
+        Pinjaman.status == StatusPinjaman.PENDING,
     ).scalar()
 
     response_data = AnggotaDetailResponse.model_validate(anggota)
     response_data.profil = ProfilAnggotaResponse.model_validate(profil) if profil else None
     response_data.total_simpanan = total_simpanan_result
-    response_data.total_pinjaman_aktif = float(total_pinjaman_result or 0)
+    response_data.total_pinjaman_aktif = float(total_pinjaman_aktif_result or 0)
+    response_data.total_pinjaman_pending = float(total_pinjaman_pending_result or 0)
 
     return response_data
 

@@ -214,85 +214,27 @@ export default function DashboardPage() {
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const months = getLast6Months()
-
-      const [
-        anggotaAll, anggotaAktif, anggotaBaru,
-        simpananBulan, pinjamanPending, pinjamanAktif,
-        angsuranJatuhTempo, angsuranTerlambat,
-        recentSmp, recentPnj, angsuranJT,
-        simpananChart, angsuranChart,
-      ] = await Promise.allSettled([
-        api.get<{ data: AnggotaItem[]; meta: PaginatedMeta }>('/anggota?limit=1'),
-        api.get<{ data: AnggotaItem[]; meta: PaginatedMeta }>('/anggota?status=aktif&limit=1'),
-        api.get<{ data: AnggotaItem[]; meta: PaginatedMeta }>('/anggota?limit=100'),
-        api.get<{ data: SimpananItem[]; meta: PaginatedMeta }>('/simpanan?limit=200'),
-        api.get<{ data: PinjamanItem[]; meta: PaginatedMeta }>('/pinjaman?status=menunggu&limit=1'),
-        api.get<{ data: PinjamanItem[]; meta: PaginatedMeta }>('/pinjaman?status=disetujui&limit=1'),
-        api.get<{ data: AngsuranItem[]; meta: PaginatedMeta }>('/angsuran?status=belum_bayar&limit=1'),
-        api.get<{ data: AngsuranItem[]; meta: PaginatedMeta }>('/angsuran?status=terlambat&limit=1'),
-        api.get<{ data: SimpananItem[]; meta: PaginatedMeta }>('/simpanan?limit=5'),
-        api.get<{ data: PinjamanItem[]; meta: PaginatedMeta }>('/pinjaman?limit=5'),
-        api.get<{ data: AngsuranItem[]; meta: PaginatedMeta }>('/angsuran?status=belum_bayar&limit=5'),
-        api.get<{ data: SimpananItem[]; meta: PaginatedMeta }>('/simpanan?limit=500'),
-        api.get<{ data: AngsuranItem[]; meta: PaginatedMeta }>('/angsuran?limit=500'),
-      ])
-
-      const mo = thisMo()
-      let anggotaBaruCount = 0
-      if (anggotaBaru.status === 'fulfilled') {
-        anggotaBaruCount = (anggotaBaru.value.data ?? []).filter(
-          (a: AnggotaItem) => a.tanggal_bergabung?.startsWith(mo) || a.created_at?.startsWith(mo)
-        ).length
-      }
-
-      let totalSimpanan = 0, simpananBulanIni = 0
-      const allSimpananTxs: SimpananItem[] = simpananBulan.status === 'fulfilled'
-        ? (simpananBulan.value.data ?? []) : []
-      allSimpananTxs.forEach((t: SimpananItem) => {
-        const val = t.tipe_transaksi === 'setor' ? t.nominal : -t.nominal
-        totalSimpanan += val
-        if (t.tanggal_transaksi?.startsWith(mo)) simpananBulanIni += val
-      })
-
-      let totalPinjaman = 0
-      try {
-        const pAll = await api.get<{ data: PinjamanItem[]; meta: PaginatedMeta }>('/pinjaman?status=disetujui&limit=200')
-        totalPinjaman = (pAll.data ?? []).reduce((sum: number, p: PinjamanItem) => sum + (p.sisa_pinjaman ?? 0), 0)
-      } catch { totalPinjaman = 0 }
+      // Single optimized API call instead of 13 separate ones
+      const res = await api.get<any>('/dashboard/summary')
+      const { stats: s, chart_data: cd, recent_simpanan: rs, recent_pinjaman: rp, recent_angsuran: ra } = res
 
       setStats({
-        totalAnggota:       anggotaAll.status === 'fulfilled' ? anggotaAll.value.meta?.total ?? 0 : 0,
-        anggotaAktif:       anggotaAktif.status === 'fulfilled' ? anggotaAktif.value.meta?.total ?? 0 : 0,
-        anggotaBaru:        anggotaBaruCount,
-        totalSimpanan:      Math.max(totalSimpanan, 0),
-        simpananBulanIni:   Math.max(simpananBulanIni, 0),
-        totalPinjaman,
-        pinjamanPending:    pinjamanPending.status === 'fulfilled' ? pinjamanPending.value.meta?.total ?? 0 : 0,
-        pinjamanAktif:      pinjamanAktif.status === 'fulfilled' ? pinjamanAktif.value.meta?.total ?? 0 : 0,
-        angsuranJatuhTempo: angsuranJatuhTempo.status === 'fulfilled' ? angsuranJatuhTempo.value.meta?.total ?? 0 : 0,
-        angsuranTerlambat:  angsuranTerlambat.status === 'fulfilled' ? angsuranTerlambat.value.meta?.total ?? 0 : 0,
+        totalAnggota:       s.total_anggota,
+        anggotaAktif:       s.anggota_aktif,
+        anggotaBaru:        s.anggota_baru,
+        totalSimpanan:      s.total_simpanan,
+        simpananBulanIni:   s.simpanan_bulan_ini,
+        totalPinjaman:      s.total_pinjaman,
+        pinjamanPending:    s.pinjaman_pending,
+        pinjamanAktif:      s.pinjaman_aktif,
+        angsuranJatuhTempo: s.angsuran_jatuh_tempo,
+        angsuranTerlambat:  s.angsuran_terlambat,
       })
 
-      if (recentSmp.status === 'fulfilled') setRecentSimpanan(recentSmp.value.data ?? [])
-      if (recentPnj.status === 'fulfilled') setRecentPinjaman(recentPnj.value.data ?? [])
-      if (angsuranJT.status === 'fulfilled') setJatuhTempo(angsuranJT.value.data ?? [])
-
-      // ── Build chart data ────────────────────────────────────────────────
-      const smpTxs: SimpananItem[] = simpananChart.status === 'fulfilled'
-        ? (simpananChart.value.data ?? []) : []
-      const angTxs: AngsuranItem[] = angsuranChart.status === 'fulfilled'
-        ? (angsuranChart.value.data ?? []) : []
-
-      const built: ChartData[] = months.map(ym => {
-        const smpBulan = smpTxs.filter(s => s.tanggal_transaksi?.startsWith(ym))
-        const angBulan = angTxs.filter(a => a.tanggal_bayar?.startsWith(ym))
-        const setor    = smpBulan.filter(s => s.tipe_transaksi === 'setor').reduce((s, t) => s + t.nominal, 0)
-        const tarik    = smpBulan.filter(s => s.tipe_transaksi === 'tarik').reduce((s, t) => s + t.nominal, 0)
-        const angsuran = angBulan.reduce((s, a) => s + (a.total_bayar ?? a.nominal_angsuran ?? 0), 0)
-        return { bulan: monthLabel(ym), setor, tarik, angsuran }
-      })
-      setChartData(built)
+      setRecentSimpanan(rs || [])
+      setRecentPinjaman(rp || [])
+      setJatuhTempo(ra || [])
+      setChartData(cd || [])
       setLastUpdated(new Date())
     } catch (e) {
       console.error('Dashboard load error:', e)

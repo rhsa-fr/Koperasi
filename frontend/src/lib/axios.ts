@@ -88,21 +88,47 @@ apiClient.interceptors.response.use(
 // Typed API helpers
 // ============================================================================
 
+// ── Simple Cache for GET requests ───────────────────────────────────────────
+const cache = new Map<string, { data: any; expire: number }>()
+
 export const api = {
-  get: <T>(url: string, config?: AxiosRequestConfig) =>
-    apiClient.get<T>(url, config).then((r) => r.data),
+  get: <T>(url: string, config?: AxiosRequestConfig) => {
+    // Check cache
+    const now = Date.now()
+    const cached = cache.get(url)
+    if (cached && cached.expire > now) {
+      return Promise.resolve(cached.data as T)
+    }
 
-  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    apiClient.post<T>(url, data, config).then((r) => r.data),
+    return apiClient.get<T>(url, config).then((r) => {
+      // Save to cache (only for GET requests without specific config)
+      if (!config || Object.keys(config).length === 0) {
+        cache.set(url, { data: r.data, expire: Date.now() + 5000 }) // 5s cache
+      }
+      return r.data
+    })
+  },
 
-  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    apiClient.put<T>(url, data, config).then((r) => r.data),
+  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) => {
+    // Clear cache on mutation
+    cache.clear()
+    return apiClient.post<T>(url, data, config).then((r) => r.data)
+  },
 
-  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    apiClient.patch<T>(url, data, config).then((r) => r.data),
+  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) => {
+    cache.clear()
+    return apiClient.put<T>(url, data, config).then((r) => r.data)
+  },
 
-  delete: <T>(url: string, config?: AxiosRequestConfig) =>
-    apiClient.delete<T>(url, config).then((r) => r.data),
+  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) => {
+    cache.clear()
+    return apiClient.patch<T>(url, data, config).then((r) => r.data)
+  },
+
+  delete: <T>(url: string, config?: AxiosRequestConfig) => {
+    cache.clear()
+    return apiClient.delete<T>(url, config).then((r) => r.data)
+  },
 }
 
 export default apiClient

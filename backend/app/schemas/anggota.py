@@ -122,6 +122,7 @@ class AnggotaDetailResponse(AnggotaResponse):
     profil: Optional[ProfilAnggotaResponse] = None
     total_simpanan: Optional[float] = Field(0, description="Total saldo simpanan")
     total_pinjaman_aktif: Optional[float] = Field(0, description="Total pinjaman aktif")
+    total_pinjaman_pending: Optional[float] = Field(0, description="Total pinjaman yang sedang diajukan")
 
     model_config = ConfigDict(from_attributes=True)
 
