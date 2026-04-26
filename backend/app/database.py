@@ -9,15 +9,26 @@ from typing import Generator
 from app.config import settings
 
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
-    pool_recycle=settings.DB_POOL_RECYCLE,
-    pool_pre_ping=True,
-    echo=settings.DEBUG,
-)
+import os
+from sqlalchemy.pool import NullPool
+
+# Optimasi untuk Vercel: Gunakan NullPool karena serverless tidak berbagi pool koneksi
+engine_args = {
+    "echo": settings.DEBUG,
+    "pool_pre_ping": True,
+}
+
+if os.getenv("VERCEL"):
+    engine_args["poolclass"] = NullPool
+else:
+    engine_args.update({
+        "pool_size": settings.DB_POOL_SIZE,
+        "max_overflow": settings.DB_MAX_OVERFLOW,
+        "pool_timeout": settings.DB_POOL_TIMEOUT,
+        "pool_recycle": settings.DB_POOL_RECYCLE,
+    })
+
+engine = create_engine(settings.DATABASE_URL, **engine_args)
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(

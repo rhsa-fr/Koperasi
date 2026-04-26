@@ -50,7 +50,13 @@ class Settings(BaseSettings):
     MAX_PAGE_SIZE: int = 100
     
     # File Upload Settings
-    UPLOAD_FOLDER: str = "uploads"
+    @property
+    def UPLOAD_FOLDER(self) -> str:
+        import os
+        if os.getenv("VERCEL"):
+            return "/tmp/uploads"
+        return "uploads"
+
     MAX_FILE_SIZE: int = 5242880  # 5MB
     ALLOWED_EXTENSIONS: str = "jpg,jpeg,png,pdf"
     

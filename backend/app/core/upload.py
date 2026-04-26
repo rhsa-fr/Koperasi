@@ -34,7 +34,11 @@ def save_uploaded_file(file: UploadFile, subfolder: str = "") -> str:
     target_dir = upload_base / subfolder
     
     # Ensure directory exists
-    target_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        if not target_dir.exists():
+            target_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create directory: {str(e)}")
     
     # Generate unique filename
     ext = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
