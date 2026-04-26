@@ -12,6 +12,7 @@ import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import Skeleton from '@/components/ui/Skeleton'
+import AnggotaSimpanan from '../AnggotaSimpanan'
 
 // ============================================================================
 // Types
@@ -675,6 +676,11 @@ export default function SimpananPage() {
   const canExport = can('simpanan', 'export')
   const canTransaksi = canSetor || canTarik
   const LIMIT = 10
+
+  // Jika yang login adalah Anggota murni, alihkan ke tampilan mobile member
+  if (user?.role === 'anggota') {
+    return <AnggotaSimpanan user={user} />
+  }
 
   // Debounce search
   useEffect(() => {

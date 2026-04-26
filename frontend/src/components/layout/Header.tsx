@@ -10,7 +10,7 @@ import { generateRoleColor, formatRoleLabel } from '@/lib/role'
 import { Loader2 } from 'lucide-react'
 import ModalGantiPassword from '../ModalGantiPassword'
 import Toast, { ToastData } from '@/components/ui/Toast'
-import { api } from '@/lib/axios'
+import { api, API_BASE_URL } from '@/lib/axios'
 
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   '/dashboard':                { title: 'Dashboard',      description: 'Ringkasan data koperasi'          },
@@ -36,18 +36,21 @@ const QUICK_LINKS = [
 ]
 
 const NOTIF_COLORS: Record<string, string> = {
-  warning: 'bg-amber-400', info: 'bg-blue-400', success: 'bg-emerald-400',
+  warning: 'bg-amber-400', info: 'bg-blue-400', success: 'bg-emerald-400', system: 'bg-indigo-400',
 }
 
-interface Notification {
-  id: number
-  type: 'warning' | 'info' | 'success'
-  title: string
-  desc: string
-  timestamp: Date | string // Changed from 'time' to 'timestamp'
-  read: boolean
-  href?: string
+
+interface AppNotification {
+  id_notifikasi: number 
+  tipe: 'success' | 'warning' | 'info' | 'system'
+  judul: string
+  pesan: string
+  is_read: boolean
+  created_at: string
+  href?: string // Optional for client-side navigation
 }
+
+
 
 export default function Header() {
   const pathname = usePathname()
@@ -58,7 +61,7 @@ export default function Header() {
   const [searchQuery,    setSearchQuery]    = useState('')
   const [notifOpen,      setNotifOpen]      = useState(false)
   const [userMenuOpen,   setUserMenuOpen]   = useState(false)
-  const [notifications,  setNotifications]  = useState<Notification[]>([])
+  const [notifications,  setNotifications]  = useState<AppNotification[]>([])
   const [notifLoading,   setNotifLoading]   = useState(true)
   const [loggingOut,     setLoggingOut]     = useState(false)
   const [confirmLogout,  setConfirmLogout]  = useState(false)
@@ -71,7 +74,8 @@ export default function Header() {
   const prevUnreadCountRef = useRef<number>(0)
 
   const pageInfo   = PAGE_TITLES[pathname] ?? { title: 'Dashboard', description: '' }
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = notifications.filter(n => !n.is_read).length
+
 
   const today = new Intl.DateTimeFormat('id-ID', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -88,130 +92,66 @@ export default function Header() {
   }, [])
 
   // Fetch notifications dari API
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setNotifLoading(true)
-        
-        // Fetch data dengan improved error handling
-        let angsuranRes = { data: [] }
-        let pinjamanRes = { data: [] }
-        
-        try {
-          const res = await api.get<any>('/angsuran?limit=100')
-          angsuranRes = { data: Array.isArray(res) ? res : (res?.data || []) }
-
-        } catch (err) {
-          console.warn('Failed to fetch angsuran:', err)
-          // Continue anyway, don't stop entire fetch
-        }
-        
-        try {
-          const res = await api.get<any>('/pinjaman?limit=100')
-          pinjamanRes = { data: Array.isArray(res) ? res : (res?.data || []) }
-
-        } catch (err) {
-          console.warn('Failed to fetch pinjaman:', err)
-        }
-        const notifs: Notification[] = []
-        let id = 1
-
-        const angsuranList = angsuranRes.data
-        const pinjamanList = pinjamanRes.data
-
-        // Notifikasi: Angsuran jatuh tempo (belum dibayar)
-
-        const overdueAngsuran = (Array.isArray(angsuranList) ? angsuranList : []).filter((a: any) => 
-          a.status === 'pending' || a.status === 'belum_dibayar' || a.status === 'overdue'
-        )
-        if (overdueAngsuran.length > 0) {
-          const latestAngsuran = overdueAngsuran[0]
-          const timestamp = latestAngsuran.tanggal_jatuh_tempo || latestAngsuran.created_at || new Date()
-          
-          notifs.push({
-            id: id++,
-            type: 'warning',
-            title: 'Angsuran Jatuh Tempo',
-            desc: `${overdueAngsuran.length} angsuran belum dibayar`,
-            timestamp,
-            read: false,
-            href: '/dashboard/angsuran',
-          })
-        }
-
-        // Notifikasi: Pinjaman menunggu persetujuan
-        const pendingLoans = (Array.isArray(pinjamanList) ? pinjamanList : []).filter((p: any) => 
-          p.status === 'pending'
-        )
-        if (pendingLoans.length > 0) {
-          const latestLoan = pendingLoans[0]
-          const timestamp = latestLoan.created_at || latestLoan.tanggal_pengajuan || new Date()
-          
-          notifs.push({
-            id: id++,
-            type: 'info',
-            title: 'Pinjaman Menunggu Persetujuan',
-            desc: `${pendingLoans.length} pengajuan pinjaman menunggu persetujuan`,
-            timestamp,
-            read: false,
-            href: '/dashboard/pinjaman',
-          })
-        }
-
-        // Jika tidak ada notifikasi, tampilkan info
-        if (notifs.length === 0) {
-          notifs.push({
-            id: id++,
-            type: 'success',
-            title: 'Semua Lancar',
-            desc: 'Tidak ada pemberitahuan penting saat ini',
-            timestamp: new Date(),
-            read: true,
-          })
-        }
-
-        // Check if there are new unread notifications
-        const currentUnreadCount = notifs.filter(n => !n.read).length
-        if (prevUnreadCountRef.current > 0 && currentUnreadCount > prevUnreadCountRef.current) {
-          const newCount = currentUnreadCount - prevUnreadCountRef.current
-          setToast({
-            type: 'info',
-            message: `${newCount} notifikasi baru: ${notifs.filter(n => !n.read).map(n => n.title).join(', ')}`
-          })
-        }
-        prevUnreadCountRef.current = currentUnreadCount
-
-        setNotifications(notifs)
-      } catch (error) {
-        console.error('Gagal memuat notifikasi:', error)
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setNotifLoading(true)
+      const res = await api.get<AppNotification[]>('/notifikasi')
+      const notifs = res || []
+      
+      // Check for new unread notifications compared to previous state to show toast
+      const currentUnreadCount = notifs.filter(n => !n.is_read).length
+      if (prevUnreadCountRef.current > 0 && currentUnreadCount > prevUnreadCountRef.current) {
         setToast({
-          type: 'error',
-          message: 'Gagal memuat notifikasi'
+          type: 'info',
+          message: `${currentUnreadCount - prevUnreadCountRef.current} notifikasi baru diterima`
         })
-      } finally {
-        setNotifLoading(false)
       }
+      prevUnreadCountRef.current = currentUnreadCount
+      setNotifications(notifs)
+    } catch (error) {
+      console.error('Gagal memuat notifikasi:', error)
+    } finally {
+      setNotifLoading(false)
     }
+  }, [])
 
+  useEffect(() => {
     fetchNotifications()
-    // Refresh notifikasi setiap 30 detik
-    const interval = setInterval(fetchNotifications, 30000)
+    const interval = setInterval(fetchNotifications, 20000) // Poll every 20s
     return () => clearInterval(interval)
-  }, [user?.id])
+  }, [fetchNotifications])
+
 
   const filteredLinks = searchQuery.trim()
     ? QUICK_LINKS.filter(l => l.label.toLowerCase().includes(searchQuery.toLowerCase()))
     : QUICK_LINKS
 
-  const markAllRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-  }, [])
+  const markAllRead = useCallback(async () => {
+    try {
+      // Sequence marking all as read in backend
+      const unread = notifications.filter(n => !n.is_read)
+      await Promise.all(unread.map(n => api.put(`/notifikasi/${n.id_notifikasi}/read`)))
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+      setToast({ type: 'success', message: 'Semua notifikasi ditandai dibaca' })
+    } catch (e) {
+      console.error(e)
+    }
+  }, [notifications])
 
-  const handleNotificationClick = useCallback((notif: Notification) => {
-    // Tandai notifikasi sebagai sudah dibaca
-    setNotifications(prev =>
-      prev.map(n => n.id === notif.id ? { ...n, read: true } : n)
-    )
+
+  const handleNotificationClick = useCallback(async (notif: AppNotification) => {
+
+    // Tandai notifikasi sebagai sudah dibaca di backend
+    if (!notif.is_read) {
+      try {
+        await api.put(`/notifikasi/${notif.id_notifikasi}/read`)
+        setNotifications(prev =>
+          prev.map(n => n.id_notifikasi === notif.id_notifikasi ? { ...n, is_read: true } : n)
+        )
+      } catch (e) {
+        console.error(e)
+      }
+    }
     // Navigate ke halaman jika ada href
     if (notif.href) {
       router.push(notif.href)
@@ -221,13 +161,14 @@ export default function Header() {
   }, [router])
 
   const handleDeleteNotification = useCallback((notifId: number) => {
-    // Remove notification dari list
-    setNotifications(prev => prev.filter(n => n.id !== notifId))
+    // Soft delete locally, backend implementation might vary
+    setNotifications(prev => prev.filter(n => n.id_notifikasi !== notifId))
     setToast({
       type: 'info',
-      message: 'Notifikasi dihapus'
+      message: 'Notifikasi disembunyikan'
     })
   }, [])
+
 
   // Buka dialog konfirmasi (bukan langsung logout)
   const openConfirm = useCallback(() => {
@@ -352,30 +293,30 @@ export default function Header() {
                     </div>
                   ) : notifications.length > 0 ? (
                     notifications.map(notif => (
-                      <div key={notif.id}
+                      <div key={notif.id_notifikasi}
                         className={cn('w-full group text-left flex gap-3 px-4 py-3 transition-colors',
-                          !notif.read ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-surface-50')}>
+                          !notif.is_read ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-surface-50')}>
                         <button
                           onClick={() => handleNotificationClick(notif)}
                           className="flex-1 flex gap-3 items-start text-left"
                         >
-                          <span className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', NOTIF_COLORS[notif.type])} />
+                          <span className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', NOTIF_COLORS[notif.tipe] || 'bg-slate-400')} />
                           <div className="flex-1 min-w-0">
-                            <p className={cn('text-xs font-semibold leading-snug', notif.read ? 'text-ink-600' : 'text-ink-800')}>
-                              {notif.title}
+                            <p className={cn('text-xs font-semibold leading-snug', notif.is_read ? 'text-ink-600' : 'text-ink-800')}>
+                              {notif.judul}
                             </p>
-                            <p className="text-[11px] text-ink-400 mt-0.5 leading-relaxed line-clamp-2">{notif.desc}</p>
+                            <p className="text-[11px] text-ink-400 mt-0.5 leading-relaxed line-clamp-2">{notif.pesan}</p>
                             <div className="flex items-center gap-1 mt-1">
                               <Clock className="w-2.5 h-2.5 text-ink-200" />
-                              <p className="text-[10px] text-ink-300">{formatRelativeTime(notif.timestamp)}</p>
+                              <p className="text-[10px] text-ink-300">{formatRelativeTime(notif.created_at)}</p>
                             </div>
                           </div>
-                          {!notif.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                          {!notif.is_read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDeleteNotification(notif.id)
+                            handleDeleteNotification(notif.id_notifikasi)
                           }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-md shrink-0"
                           title="Hapus notifikasi"
@@ -384,6 +325,7 @@ export default function Header() {
                         </button>
                       </div>
                     ))
+
                   ) : (
                     <div className="flex items-center justify-center py-8 text-ink-400">
                       <p className="text-xs">Tidak ada notifikasi</p>
@@ -406,9 +348,17 @@ export default function Header() {
               className={cn('flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg transition-all duration-150',
                 userMenuOpen ? 'bg-surface-200' : 'hover:bg-surface-100')}
             >
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}>
-                <User className="w-4 h-4 text-white" />
+                {user?.anggota?.foto_profil ? (
+                  <img 
+                    src={`${API_BASE_URL}/uploads/${user.anggota.foto_profil}`} 
+                    alt="User" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-4 h-4 text-white" />
+                )}
               </div>
               <div className="hidden md:block text-left">
                 <p className="text-xs font-semibold text-ink-800 leading-none capitalize">
@@ -428,9 +378,17 @@ export default function Header() {
               <div className="absolute right-0 top-10 w-56 bg-white rounded-xl border border-surface-300 shadow-lg overflow-hidden animate-fade-in">
                 <div className="px-4 py-3 border-b border-surface-200 bg-surface-50">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
                       style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}>
-                      <User className="w-5 h-5 text-white" />
+                      {user?.anggota?.foto_profil ? (
+                        <img 
+                          src={`${API_BASE_URL}/uploads/${user.anggota.foto_profil}`} 
+                          alt="User" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-5 h-5 text-white" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink-800 truncate">{user?.username}</p>
@@ -444,7 +402,7 @@ export default function Header() {
                 </div>
                 <div className="py-1">
                   <button
-                    onClick={() => { router.push('/dashboard/profil-anggota'); setUserMenuOpen(false) }}
+                    onClick={() => { router.push('/dashboard/profile'); setUserMenuOpen(false) }}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-surface-100 transition-colors">
                     <User className="w-4 h-4 text-ink-400" />
                     <span className="text-sm text-ink-700">Profil Saya</span>

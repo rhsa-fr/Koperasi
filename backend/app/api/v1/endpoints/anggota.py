@@ -2,7 +2,7 @@
 # FILE: app/api/v1/endpoints/anggota.py  — REPLACE existing file
 # ============================================================================
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -18,6 +18,7 @@ from app.schemas.anggota import (
 from app.schemas.common import PaginatedResponse, PaginationMeta, MessageResponse
 from app.core.permissions import get_current_user
 from app.core.exceptions import NotFoundException, ConflictException
+from app.core.upload import save_uploaded_file, delete_file
 
 router = APIRouter()
 
@@ -253,6 +254,39 @@ def upsert_profil_anggota(
         profil.jenis_kelamin = None
         db.commit()
 
+    return ProfilAnggotaResponse.model_validate(profil)
+
+
+# ── POST /anggota/{id}/upload-foto ────────────────────────────────────────────
+@router.post("/{id_anggota}/upload-foto", response_model=ProfilAnggotaResponse)
+def upload_foto_anggota(
+    id_anggota: int,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upload foto profil anggota"""
+    anggota = db.query(Anggota).filter(Anggota.id_anggota == id_anggota).first()
+    if not anggota:
+        raise NotFoundException("Anggota tidak ditemukan")
+
+    profil = db.query(ProfilAnggota).filter(ProfilAnggota.id_anggota == id_anggota).first()
+    if not profil:
+        # Jika profil belum ada, buat profil minimal dulu
+        profil = ProfilAnggota(id_anggota=id_anggota)
+        db.add(profil)
+        db.flush()
+
+    # Hapus foto lama jika ada
+    if profil.foto_profil:
+        delete_file(profil.foto_profil)
+
+    # Simpan file baru
+    file_path = save_uploaded_file(file, subfolder="profil")
+    profil.foto_profil = file_path
+
+    db.commit()
+    db.refresh(profil)
     return ProfilAnggotaResponse.model_validate(profil)
 
 

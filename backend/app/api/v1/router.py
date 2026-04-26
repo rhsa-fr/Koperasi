@@ -15,6 +15,7 @@ import app.models.angsuran
 import app.models.syarat_peminjaman
 import app.models.pinjaman_syarat
 import app.models.setting
+import app.models.notifikasi
 
 from app.api.v1.endpoints import (
     auth,
@@ -28,6 +29,7 @@ from app.api.v1.endpoints import (
     roles,
     sidebar,
     audit,
+    notifikasi,
 )
 
 router = APIRouter()
@@ -43,3 +45,4 @@ router.include_router(setting.router,           prefix="/setting",           tag
 router.include_router(roles.router,             prefix="/roles",             tags=["Roles & RBAC"])
 router.include_router(sidebar.router,           prefix="/sidebar",           tags=["Sidebar Management"])
 router.include_router(audit.router,             prefix="/audit",             tags=["Audit Logs"])
+router.include_router(notifikasi.router,        prefix="/notifikasi",        tags=["notifikasi"])

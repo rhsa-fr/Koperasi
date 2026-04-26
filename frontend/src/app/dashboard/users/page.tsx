@@ -66,6 +66,7 @@ function RoleBadge({ role }: { role: string }) {
     ketua:       { bg: 'bg-accent-50',  text: 'text-accent-600', border: 'border-accent-200' },
     bendahara:   { bg: 'bg-amber-50',    text: 'text-amber-600',  border: 'border-amber-200' },
     teler:       { bg: 'bg-emerald-50',  text: 'text-emerald-600',border: 'border-emerald-200' },
+    anggota:     { bg: 'bg-sky-50',      text: 'text-sky-600',    border: 'border-sky-200' },
   }
   
   const theme = configs[role] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' }
@@ -185,7 +186,8 @@ export default function UsersManagementPage() {
       setShowAddModal(false)
       setNewUser({ username: '', password: '', role: 'admin' })
     } catch (err: any) {
-      setToast({ type: 'error', message: err.response?.data?.detail || 'Gagal menambahkan user' })
+      const errorMessage = err.message || err.response?.data?.detail || 'Gagal menambahkan user'
+      setToast({ type: 'error', message: errorMessage })
     } finally {
       setSaving(false)
     }
@@ -200,7 +202,8 @@ export default function UsersManagementPage() {
       setToast({ type: 'success', message: `User ${userToDelete.username} berhasil dihapus` })
       fetchUsers()
     } catch (err: any) {
-      setToast({ type: 'error', message: err.response?.data?.detail || 'Gagal menghapus user' })
+      const errorMessage = err.message || err.response?.data?.detail || 'Gagal menghapus user'
+      setToast({ type: 'error', message: errorMessage })
     } finally {
       setSaving(false)
       setUserToDelete(null)

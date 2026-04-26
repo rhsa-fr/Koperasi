@@ -6,7 +6,7 @@ import axios, {
 } from 'axios'
 import { tokenStorage } from './token'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 // ============================================================================
 // Axios Instance
@@ -48,7 +48,11 @@ apiClient.interceptors.response.use(
     }
 
     if (status === 403) {
-      return Promise.reject(new Error('Anda tidak memiliki akses.'))
+      const detail = error.response?.data?.detail
+      const message = typeof detail === 'string' 
+        ? detail 
+        : (error.response?.data?.message || 'Anda tidak memiliki akses.')
+      return Promise.reject(new Error(message))
     }
 
     // FastAPI validation errors (422)

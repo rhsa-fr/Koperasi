@@ -9,6 +9,15 @@ export interface AuthUser {
   username: string
   role: UserRole
   permissions?: Record<string, string[]>
+  anggota?: {
+    id_anggota: number
+    no_anggota: string
+    status: string
+    nama_lengkap?: string
+    email?: string
+    no_telepon?: string
+    foto_profil?: string | null
+  } | null
 }
 
 // POST /api/v1/auth/login — request body
@@ -32,6 +41,15 @@ export interface MeResponse {
   is_active: boolean
   created_at: string
   permissions?: Record<string, string[]>
+  anggota?: {
+    id_anggota: number
+    no_anggota: string
+    status: string
+    nama_lengkap?: string
+    email?: string
+    no_telepon?: string
+    foto_profil?: string | null
+  } | null
 }
 
 export interface AuthState {

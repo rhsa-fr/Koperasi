@@ -91,7 +91,6 @@ export default function RolesManagementPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
-
   // 2. Fetch Role Specific Permissions
   useEffect(() => {
     if (selectedRoleId && menus.length > 0) {
@@ -197,7 +196,6 @@ export default function RolesManagementPage() {
           </div>
         </button>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
         {/* Role List Sidebar */}
         <div className="lg:col-span-1">

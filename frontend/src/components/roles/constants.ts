@@ -11,7 +11,8 @@ export const MODULES = [
   'users',
   'roles',
   'menus',
-  'audit'
+  'audit',
+  'settings'
 ]
 
 export const ADMIN_ONLY_RESOURCES = ['users', 'rbac', 'sidebar', 'menus', 'audit', 'settings', 'roles']
@@ -44,5 +45,6 @@ export const MODULE_LABELS: Record<string, string> = {
   users: 'Manajemen User',
   roles: 'Manajemen Role',
   menus: 'Manajemen Menu',
-  audit: 'Audit Log'
+  audit: 'Audit Log',
+  settings: 'Pengaturan Koperasi'
 }

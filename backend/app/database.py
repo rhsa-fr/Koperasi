@@ -17,7 +17,6 @@ engine = create_engine(
     pool_recycle=settings.DB_POOL_RECYCLE,
     pool_pre_ping=True,
     echo=settings.DEBUG,
-    connect_args={"ssl": {"ssl_mode": "REQUIRED"}}
 )
 
 # Create SessionLocal class

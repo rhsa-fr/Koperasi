@@ -17,6 +17,7 @@ import Skeleton from '@/components/ui/Skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/axios'
 import { cn } from '@/lib/utils'
+import AnggotaDashboard from './AnggotaDashboard'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface PaginatedMeta {
@@ -190,6 +191,16 @@ export default function DashboardPage() {
       router.replace('/dashboard/superadmin')
     }
   }, [user?.role, isLoading, router])
+
+  // Show generic loader first to prevent flashing
+  if (isLoading) {
+    return null
+  }
+
+  // Use Anggota Dashboard
+  if (user?.role === 'anggota') {
+    return <AnggotaDashboard user={user} />
+  }
 
   const [stats, setStats]                   = useState<Stats | null>(null)
   const [recentSimpanan, setRecentSimpanan] = useState<SimpananItem[]>([])

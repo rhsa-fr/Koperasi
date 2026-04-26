@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   X, Calculator, CheckCircle2, AlertCircle,
-  FileText, Loader2, ChevronDown, User, Plus
+  FileText, Loader2, ChevronDown, User, Plus, BadgeCheck
 } from 'lucide-react'
 import {
   Pinjaman, PinjamanCreatePayload, Anggota, SyaratItem,
@@ -13,9 +13,21 @@ import {
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/axios'
 
+interface KoperasiSetting {
+  nama_koperasi: string;
+  deskripsi: string;
+  alamat: string;
+  bunga_default: number;
+  max_pinjaman: number;
+  min_pinjaman: number;
+}
+
+
 interface Props {
   onClose: () => void
   onSuccess: (pinjaman: Pinjaman) => void
+  initialAnggota?: Anggota | null
+  isMobile?: boolean
 }
 
 const NOMINAL_PRESETS = [
@@ -39,11 +51,11 @@ function parseDisplayValue(display: string): number {
   return Number(display.replace(/\./g, ''))
 }
 
-export default function FormPinjaman({ onClose, onSuccess }: Props) {
-  const [anggotaQuery, setAnggotaQuery]       = useState('')
+export default function FormPinjaman({ onClose, onSuccess, initialAnggota, isMobile = false }: Props) {
+  const [anggotaQuery, setAnggotaQuery]       = useState(initialAnggota?.nama_lengkap || '')
   const [anggotaList, setAnggotaList]         = useState<Anggota[]>([])
   const [anggotaDropdown, setAnggotaDropdown] = useState(false)
-  const [selectedAnggota, setSelectedAnggota] = useState<Anggota | null>(null)
+  const [selectedAnggota, setSelectedAnggota] = useState<Anggota | null>(initialAnggota || null)
 
   const [nominalDisplay, setNominalDisplay] = useState('')
   const nominal = nominalDisplay ? parseDisplayValue(nominalDisplay) : 0
@@ -58,6 +70,43 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
   const [uploadingFiles, setUploadingFiles] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState<string | null>(null)
+  const [settings, setSettings]   = useState<KoperasiSetting | null>(null)
+
+
+  const [anggotaDetail, setAnggotaDetail] = useState<any>(null)
+  const [riwayatPinjaman, setRiwayatPinjaman] = useState<any[]>([])
+  const [riwayatSimpanan, setRiwayatSimpanan] = useState<any[]>([])
+
+  // ── Fetch Settings & Extended Data ───────────────────────────────────────
+  useEffect(() => {
+    // Load Settings
+    api.get<KoperasiSetting>('/setting')
+      .then(res => {
+        setSettings(res)
+        setBunga(res.bunga_default || 2)
+      })
+      .catch(e => console.error("Gagal load setting koperasi", e))
+
+    if (selectedAnggota && !isMobile) {
+
+      Promise.all([
+        api.get<any>(`/anggota/${selectedAnggota.id_anggota}/detail`),
+        api.get<any>(`/pinjaman?id_anggota=${selectedAnggota.id_anggota}&limit=3`),
+        api.get<any>(`/simpanan?id_anggota=${selectedAnggota.id_anggota}&limit=3`)
+      ])
+      .then(([detRes, pinjRes, simpRes]) => {
+        // the detail response format might be at data or direct
+        setAnggotaDetail(detRes.data || detRes)
+        setRiwayatPinjaman(pinjRes.data?.data || pinjRes.data || [])
+        setRiwayatSimpanan(simpRes.data?.data || simpRes.data || [])
+      })
+      .catch(e => console.error("Gagal load history anggota", e))
+    } else {
+      setAnggotaDetail(null)
+      setRiwayatPinjaman([])
+      setRiwayatSimpanan([])
+    }
+  }, [selectedAnggota, isMobile])
 
   // ── Cari anggota ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -111,7 +160,16 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
     setError(null)
     if (!selectedAnggota)         { setError('Pilih anggota terlebih dahulu'); return }
     if (!nominal || nominal <= 0) { setError('Masukkan nominal pinjaman yang valid'); return }
+    if (settings && nominal > settings.max_pinjaman) {
+      setError(`Nominal melebihi batas maksimal pinjaman (${formatRupiah(settings.max_pinjaman)})`);
+      return;
+    }
+    if (settings && nominal < settings.min_pinjaman) {
+      setError(`Nominal kurang dari batas minimal pinjaman (${formatRupiah(settings.min_pinjaman)})`);
+      return;
+    }
     if (!keperluan.trim())        { setError('Keperluan pinjaman harus diisi'); return }
+
 
     // ── Validasi file wajib ──
     const missingWajib = syaratList.find(s => s.is_wajib && !selectedFiles[s.kode])
@@ -172,12 +230,24 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="min-h-full flex items-center justify-center py-8">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col animate-fade-in relative">
+    <div className={cn(
+      "z-50",
+      isMobile 
+        ? "absolute inset-0 bg-surface-50 flex flex-col" 
+        : "fixed inset-0 bg-black/40 backdrop-blur-sm p-4 flex items-center justify-center py-8"
+    )}>
+      <div className={cn(
+        "bg-white w-full flex flex-col animate-fade-in relative",
+        isMobile 
+          ? "flex-1 min-h-0" 
+          : "rounded-2xl shadow-2xl max-w-2xl max-h-full overflow-hidden"
+      )}>
 
-          {/* ── Header ───────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200 shrink-0 sticky top-0 bg-white z-10 rounded-t-2xl">
+        {/* ── Header ───────────────────────────────────────────────────── */}
+        <div className={cn(
+          "flex items-center justify-between px-6 py-4 border-b border-surface-200 shrink-0 bg-white z-20 shadow-sm",
+          !isMobile && "rounded-t-2xl"
+        )}>
             <div>
               <h2 className="text-base font-semibold text-ink-800">Pengajuan Pinjaman Baru</h2>
               <p className="text-xs text-ink-300 mt-0.5">Isi formulir pengajuan pinjaman anggota</p>
@@ -190,7 +260,7 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
             </button>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
             {/* Error */}
             {error && (
@@ -206,61 +276,119 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
                 Data Anggota
               </h3>
 
-              <div className="relative">
-                <label className="block text-xs font-medium text-ink-600 mb-1.5">
-                  Cari Anggota <span className="text-red-500">*</span>
-                </label>
+              {!initialAnggota ? (
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300" />
-                  <input
-                    type="text"
-                    placeholder="Ketik nama atau nomor anggota..."
-                    value={selectedAnggota ? selectedAnggota.nama_lengkap : anggotaQuery}
-                    onFocus={() => { setAnggotaDropdown(true); if (selectedAnggota) setAnggotaQuery('') }}
-                    onChange={e => {
-                      setAnggotaQuery(e.target.value)
-                      setSelectedAnggota(null)
-                      setAnggotaDropdown(true)
-                    }}
-                    onBlur={() => setTimeout(() => setAnggotaDropdown(false), 150)}
-                    className="w-full pl-9 pr-3 py-2.5 text-sm border border-surface-300 rounded-xl focus:outline-none focus:border-ink-800 transition-colors"
-                  />
-                </div>
-
-                {anggotaDropdown && anggotaList.length > 0 && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-surface-300 rounded-xl shadow-lg max-h-52 overflow-y-auto">
-                    {anggotaList.map(a => (
-                      <button
-                        key={a.id_anggota}
-                        onMouseDown={() => {
-                          setSelectedAnggota(a)
-                          setAnggotaQuery(a.nama_lengkap)
-                          setAnggotaDropdown(false)
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface-50 text-left transition-colors"
-                      >
-                        <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}
-                        >
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-ink-800">{a.nama_lengkap}</p>
-                          <p className="text-[10px] text-ink-400">{a.no_anggota}</p>
-                        </div>
-                      </button>
-                    ))}
+                  <label className="block text-xs font-medium text-ink-600 mb-1.5">
+                    Cari Anggota <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300" />
+                    <input
+                      type="text"
+                      placeholder="Ketik nama atau nomor anggota..."
+                      value={selectedAnggota ? selectedAnggota.nama_lengkap : anggotaQuery}
+                      onFocus={() => { setAnggotaDropdown(true); if (selectedAnggota) setAnggotaQuery('') }}
+                      onChange={e => {
+                        setAnggotaQuery(e.target.value)
+                        setSelectedAnggota(null)
+                        setAnggotaDropdown(true)
+                      }}
+                      onBlur={() => setTimeout(() => setAnggotaDropdown(false), 150)}
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-surface-300 rounded-xl focus:outline-none focus:border-ink-800 transition-colors"
+                    />
                   </div>
-                )}
-              </div>
+
+                  {anggotaDropdown && anggotaList.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-surface-300 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                      {anggotaList.map(a => (
+                        <button
+                          key={a.id_anggota}
+                          onMouseDown={() => {
+                            setSelectedAnggota(a)
+                            setAnggotaQuery(a.nama_lengkap)
+                            setAnggotaDropdown(false)
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface-50 text-left transition-colors"
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}
+                          >
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-ink-800">{a.nama_lengkap}</p>
+                            <p className="text-[10px] text-ink-400">{a.no_anggota}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
 
               {selectedAnggota && (
-                <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <p className="text-xs text-emerald-700 font-medium">
-                    {selectedAnggota.nama_lengkap} · {selectedAnggota.no_anggota}
-                  </p>
+                <div className={cn(
+                  "mt-2 flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all",
+                  initialAnggota ? "bg-surface-50 border-surface-200" : "bg-emerald-50 border-emerald-200"
+                )}>
+                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <User className="w-5 h-5 text-accent-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-ink-800 tracking-tight leading-none mb-1">
+                      {selectedAnggota.nama_lengkap}
+                    </p>
+                    <p className="text-[10px] text-ink-400 font-bold uppercase tracking-widest">
+                      {selectedAnggota.no_anggota}
+                    </p>
+                  </div>
+                  {initialAnggota && <BadgeCheck className="w-5 h-5 text-emerald-500 ml-auto" />}
+                </div>
+              )}
+
+              {/* Tampilan Riwayat & Saldo Khusus Staff */}
+              {!isMobile && selectedAnggota && anggotaDetail && (
+                <div className="mt-4 p-4 rounded-xl border border-blue-100 bg-blue-50/50 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white p-3 rounded-lg border border-surface-200 shadow-sm">
+                      <p className="text-[9px] uppercase tracking-widest font-bold text-ink-400 mb-1">Total Simpanan</p>
+                      <p className="text-sm font-black text-emerald-600">
+                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(anggotaDetail.total_simpanan || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-surface-200 shadow-sm">
+                      <p className="text-[9px] uppercase tracking-widest font-bold text-ink-400 mb-1">Tunggakan / Pinjaman Aktif</p>
+                      <p className="text-sm font-black text-amber-600">
+                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(anggotaDetail.total_pinjaman_aktif || 0)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <p className="text-[10px] font-bold text-ink-900 border-b pb-1 mb-2">Pinjaman Terakhir</p>
+                        {riwayatPinjaman.length > 0 ? riwayatPinjaman.map((p, i) => (
+                          <div key={i} className="flex justify-between items-center text-xs mb-1.5 border-b border-white pb-1.5">
+                             <span className="text-ink-600">{new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}</span>
+                             <span className={cn("font-bold text-[10px] px-1.5 py-0.5 rounded", p.status === 'lunas' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                               {p.status.toUpperCase()}
+                             </span>
+                          </div>
+                        )) : <p className="text-[10px] text-ink-400 italic">Belum ada riwayat</p>}
+                     </div>
+                     <div>
+                        <p className="text-[10px] font-bold text-ink-900 border-b pb-1 mb-2">Simpanan Terakhir</p>
+                        {riwayatSimpanan.length > 0 ? riwayatSimpanan.map((s, i) => (
+                          <div key={i} className="flex justify-between items-center text-xs mb-1.5 border-b border-white pb-1.5">
+                             <span className="text-ink-600">{new Date(s.tanggal_transaksi).toLocaleDateString('id-ID')}</span>
+                             <span className={cn("font-bold text-[10px]", s.tipe_transaksi === 'setor' ? "text-emerald-600" : "text-amber-600")}>
+                               {s.tipe_transaksi === 'setor' ? '+' : '-'} {new Intl.NumberFormat('id-ID').format(s.nominal)}
+                             </span>
+                          </div>
+                        )) : <p className="text-[10px] text-ink-400 italic">Belum ada riwayat</p>}
+                     </div>
+                  </div>
                 </div>
               )}
             </section>
@@ -445,7 +573,10 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
           </div>
 
           {/* ── Footer ───────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-surface-200 shrink-0 sticky bottom-0 bg-white z-10 rounded-b-2xl">
+          <div className={cn(
+            "px-6 py-4 bg-surface-50 border-t border-surface-200 flex justify-end gap-3 shrink-0 z-20",
+            !isMobile && "rounded-b-2xl"
+          )}>
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-sm font-medium text-ink-600 hover:bg-surface-200 transition-colors"
@@ -461,7 +592,6 @@ export default function FormPinjaman({ onClose, onSuccess }: Props) {
             </button>
           </div>
 
-        </div>
       </div>
     </div>
   )

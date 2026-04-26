@@ -4,6 +4,14 @@ import Image from 'next/image'
 import { Eye, EyeOff, LogIn, Loader2, AlertCircle, TrendingUp, Shield, Users } from 'lucide-react'
 import { useLogin } from '@/hooks/useLogin'
 import { cn } from '@/lib/utils'
+import { useState, useEffect } from 'react'
+import { api } from '@/lib/axios'
+
+interface KoperasiSetting {
+  nama_koperasi: string;
+  deskripsi: string;
+}
+
 
 const STATS = [
   { icon: Users, label: 'Anggota Aktif', value: '1.240+' },
@@ -30,8 +38,46 @@ export default function LoginForm() {
     handleSubmit,
   } = useLogin()
 
+  const [setting, setSetting] = useState<KoperasiSetting | null>(null)
+
+  useEffect(() => {
+    api.get<KoperasiSetting>(`/setting?t=${Date.now()}`)
+      .then(res => setSetting(res))
+      .catch(e => console.error(e))
+  }, [])
+
+
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex lg:bg-white font-sans selection:bg-blue-500/30 overflow-hidden relative">
+      {/* ── Aesthetic Background (Mobile Only) ── */}
+      <div className="lg:hidden absolute inset-0 z-0 pointer-events-none">
+        {/* Soft Aesthetic Gradient */}
+        <div 
+          className="absolute inset-0 bg-[#020617]"
+          style={{
+            background: `
+              radial-gradient(circle at 50% -20%, #1e40af 0%, transparent 50%),
+              radial-gradient(circle at 0% 100%, #0f172a 0%, transparent 50%),
+              radial-gradient(circle at 100% 100%, #1e3a8a 0%, transparent 50%)
+            `
+          }}
+        />
+        
+        {/* Subtle Floating Orbs */}
+        <div className="absolute top-[10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse duration-[10000ms]" />
+        <div className="absolute bottom-[0%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse duration-[15000ms]" />
+
+        {/* Very Soft Noise texture */}
+        <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+          }}
+        />
+      </div>
+
+
+
+
 
       {/* ══════════════════════════════════════
           LEFT PANEL
@@ -66,19 +112,22 @@ export default function LoginForm() {
           <div className="flex items-center gap-4 mb-16">
             <Image
               src="/logo.svg"
-              alt="KOPDAR Logo"
+              alt={setting?.nama_koperasi || "Logo"}
               width={72}
               height={72}
               className="shrink-0 drop-shadow-lg"
               priority
             />
             <div>
-              <p className="text-white font-bold text-2xl tracking-widest">KOPDAR</p>
+              <p className="text-white font-bold text-2xl tracking-widest">
+                {(setting?.nama_koperasi || 'KOPDAR').toUpperCase()}
+              </p>
               <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#e09b3d' }}>
-                Koperasi Darurat
+                {setting?.deskripsi?.slice(0, 30) || 'Koperasi Simpan Pinjam'}
               </p>
             </div>
           </div>
+
 
           {/* ── Headline ── */}
           <div className="mb-12">
@@ -95,9 +144,9 @@ export default function LoginForm() {
               </span>
             </h1>
             <p className="text-slate-400 text-base leading-relaxed max-w-xs">
-              Platform manajemen koperasi yang terintegrasi untuk pengelolaan simpanan,
-              pinjaman, dan laporan keuangan.
+              {setting?.deskripsi || 'Platform manajemen koperasi yang terintegrasi untuk pengelolaan simpanan, pinjaman, dan laporan keuangan.'}
             </p>
+
           </div>
 
           {/* ── Feature list ── */}
@@ -141,35 +190,45 @@ export default function LoginForm() {
       {/* ══════════════════════════════════════
           RIGHT PANEL (Form)
       ══════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#F7F7F5]">
-
-        {/* Logo mobile (layar kecil) */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10 lg:bg-[#F7F7F5]">
+        
+        {/* Logo mobile (layar kecil) - Revert to Initial */}
         <div className="lg:hidden flex flex-col items-center gap-2 mb-10">
           <Image
-            src="/logo-kopdar.png"
+            src="/logo.svg"
             alt="KOPDAR Logo"
             width={80}
             height={80}
-            className="object-contain"
+            className="object-contain drop-shadow-md"
             priority
           />
-          <div className="text-center">
-            <p className="text-ink-800 font-bold text-xl tracking-widest">Kopdar</p>
-            <p className="text-ink-300 text-[10px] tracking-widest uppercase">Koperasi Simpan Pinjam</p>
+          <div className="text-center lg:text-left">
+            <p className="text-white lg:text-ink-800 font-bold text-xl tracking-widest uppercase">
+              {setting?.nama_koperasi || 'Kopdar'}
+            </p>
+            <p className="text-blue-200 lg:text-ink-300 text-[10px] tracking-widest uppercase">
+              {setting?.deskripsi || 'Koperasi Simpan Pinjam'}
+            </p>
           </div>
+
         </div>
 
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[400px] relative z-10">
 
-          {/* Heading */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-ink-800 mb-1 tracking-tight">Selamat datang</h2>
-            <p className="text-ink-300 text-sm">Masuk untuk mengakses sistem koperasi</p>
+          {/* Heading - Responsive alignment & colors */}
+          <div className="mb-8 text-center lg:text-left px-4 lg:px-0">
+            <h2 className="text-3xl lg:text-2xl font-bold text-white lg:text-ink-800 mb-2 lg:mb-1 tracking-tight">Selamat datang</h2>
+            <p className="text-blue-100 lg:text-ink-300 text-sm opacity-80 lg:opacity-100">Masuk untuk mengakses sistem koperasi</p>
           </div>
 
-          {/* Card form */}
-          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-surface-300 p-7">
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          {/* Card form - Revert to Initial White Card */}
+          <div className="bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10 p-8">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
+
+
+
+
+
 
               {/* Error */}
               {error && (
@@ -179,23 +238,18 @@ export default function LoginForm() {
                 </div>
               )}
 
-              {/* Username */}
+              {/* Username - Revert to Initial */}
               <div className="space-y-2">
                 <label htmlFor="username" className="block text-xs font-semibold text-ink-600 tracking-wide uppercase">
                   Username
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-200">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
+                    <Users className="w-4 h-4" />
                   </span>
                   <input
                     id="username"
                     type="text"
-                    autoComplete="username"
-                    autoFocus
                     disabled={isLoading}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -211,22 +265,18 @@ export default function LoginForm() {
                 </div>
               </div>
 
-              {/* Password */}
+              {/* Password - Revert to Initial */}
               <div className="space-y-2">
                 <label htmlFor="password" className="block text-xs font-semibold text-ink-600 tracking-wide uppercase">
                   Password
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-200">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
+                    <Shield className="w-4 h-4" />
                   </span>
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
                     disabled={isLoading}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -244,14 +294,13 @@ export default function LoginForm() {
                     tabIndex={-1}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-500 transition-colors"
-                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Submit button */}
+              {/* Submit button - Revert to Initial */}
               <button
                 type="submit"
                 disabled={isLoading}
@@ -271,6 +320,9 @@ export default function LoginForm() {
                 )}
               </button>
 
+
+
+
             </form>
           </div>
 
@@ -287,8 +339,8 @@ export default function LoginForm() {
             ))}
           </div> */}
 
-          <p className="text-center text-[11px] text-ink-200 mt-8">
-            © {new Date().getFullYear()} KOPDAR — Koperasi Simpan Pinjam. All rights reserved.
+          <p className="text-center lg:text-left text-[11px] text-blue-200 lg:text-ink-200 mt-8">
+            © {new Date().getFullYear()} {setting?.nama_koperasi || 'KOPDAR'} — {setting?.deskripsi || 'Koperasi Simpan Pinjam'}. All rights reserved.
           </p>
 
         </div>

@@ -1,15 +1,37 @@
+'use client'
+
+import { useAuth } from '@/context/AuthContext'
 import DashboardGuard from '@/components/auth/DashboardGuard'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import MobileLayout from './MobileLayout'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { user } = useAuth()
+
   return (
     <DashboardGuard>
-      <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
+      {/* ── MOBILE VIEW (Up to md screen) ── */}
+      <div className="lg:hidden flex flex-col h-full bg-[#f8fafc]">
+        {user?.role === 'anggota' ? (
+          <MobileLayout>{children}</MobileLayout>
+        ) : (
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar /> {/* Sidebar usually hides itself or behaves differently on mobile, but keeping current flow */}
+            <div className="flex-1 flex flex-col min-w-0">
+               <Header />
+               <main className="flex-1 overflow-y-auto p-4">{children}</main>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP VIEW (lg screen and above) ── */}
+      <div className="hidden lg:flex h-screen overflow-hidden bg-[#f1f5f9]">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative [transform:translateZ(0)]">
           <div className="absolute inset-0 z-[-1] pointer-events-none opacity-50">
@@ -27,3 +49,4 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </DashboardGuard>
   )
 }
+

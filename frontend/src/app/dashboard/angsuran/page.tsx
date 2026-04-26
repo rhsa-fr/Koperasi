@@ -756,8 +756,8 @@ export default function AngsuranPage() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            {/* Bayar — hanya untuk belum_bayar / terlambat */}
-                            {canBayar && a.status !== 'lunas' && (
+                            {/* Bayar — hanya untuk belum_bayar */}
+                            {canBayar && a.status === 'belum_bayar' && (
                               <button
                                 onClick={() => setSelected(a)}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent-600 text-white text-[10px] font-medium hover:bg-accent-700 transition-colors whitespace-nowrap"
@@ -765,8 +765,8 @@ export default function AngsuranPage() {
                                 <Banknote className="w-3 h-3" />Bayar
                               </button>
                             )}
-                            {/* Cetak bukti — hanya untuk yang sudah lunas */}
-                            {a.status === 'lunas' && (
+                            {/* Cetak bukti — hanya untuk yang sudah lunas atau terlambat (sudah bayar) */}
+                            {(a.status === 'lunas' || a.status === 'terlambat') && (
                               <button
                                 onClick={() => {
                                   const denda = a.denda ?? 0

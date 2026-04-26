@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings, Loader2, AlertCircle, CheckCircle2, X } from 'lucide-react'
+import { Settings, Loader2, AlertCircle, CheckCircle2, X, Building2, Wallet, Landmark, Info, Save, RotateCcw } from 'lucide-react'
 import { api } from '@/lib/axios'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -29,8 +29,11 @@ interface Toast {
 }
 
 export default function SettingsPage() {
-  const { can } = useAuth()
-  const isAdmin = can('setting', 'update')
+  const { can, user } = useAuth()
+  
+  // Super Admin bypass or check permission
+  const isAdmin = user?.role === 'super_admin' || can('settings', 'update')
+  
   const [setting, setSetting] = useState<Setting | null>(null)
   const [form, setForm] = useState<Partial<Setting>>({})
   const [loading, setLoading] = useState(true)
@@ -62,7 +65,8 @@ export default function SettingsPage() {
   const fetchSetting = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<Setting>('/setting')
+      // Added cache-busting to ensure fresh data
+      const data = await api.get<Setting>(`/setting?t=${Date.now()}`)
       setSetting(data)
       setForm(data)
       setError(null)
@@ -80,7 +84,7 @@ export default function SettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!isAdmin) {
-      addToast('Hanya admin yang dapat mengubah setting', 'error')
+      addToast('Anda tidak memiliki izin untuk mengubah pengaturan.', 'error')
       return
     }
 
@@ -88,18 +92,30 @@ export default function SettingsPage() {
     setError(null)
 
     try {
-      const updated = await api.put<Setting>('/setting', form)
-      setSetting(updated)
-      // Delay sedikit sebelum scroll agar notifikasi render lebih dulu
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      }, 100)
-      addToast('Pengaturan berhasil disimpan! ✓', 'success')
+      // Explicitly pick fields to send to backend to avoid schema validation issues
+      const payload = {
+        nama_koperasi: form.nama_koperasi,
+        deskripsi: form.deskripsi,
+        alamat: form.alamat,
+        no_telepon: form.no_telepon,
+        email: form.email,
+        bunga_default: form.bunga_default,
+        denda_keterlambatan: form.denda_keterlambatan,
+        min_nominal_pinjaman: form.min_nominal_pinjaman,
+        max_nominal_pinjaman: form.max_nominal_pinjaman,
+        max_lama_angsuran: form.max_lama_angsuran,
+        saldo_minimal_simpanan: form.saldo_minimal_simpanan
+      }
       
-      // Refresh halaman setelah 2 detik agar perubahan muncul di semua halaman
+      const updated = await api.put<Setting>('/setting', payload)
+      setSetting(updated)
+      
+      addToast('Pengaturan Koperasi berhasil diperbarui!', 'success')
+      
+      // Delay to show success before reload
       setTimeout(() => {
         window.location.reload()
-      }, 2000)
+      }, 1000)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Gagal menyimpan setting'
       setError(errorMsg)
@@ -111,345 +127,318 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-ink-400" />
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-accent-600 animate-spin" />
+        <p className="text-slate-400 font-medium text-sm animate-pulse">Menghubungkan ke sistem...</p>
       </div>
     )
   }
 
   return (
     <>
-      {/* Toast Notifications via Portal - Modal Dialog Style */}
+      {/* Premium Dialog Toasts */}
       {mounted && createPortal(
         <>
-          {/* Backdrop */}
           {toasts.length > 0 && (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
+            <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-[60] animate-in fade-in duration-300" />
           )}
 
-          {/* Modals */}
-          {toasts.map(toast => (
-            <div key={toast.id} className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-300">
-                {/* Icon + Title Row */}
-                <div className="flex items-center gap-3 mb-4">
+          <div className="fixed inset-0 pointer-events-none z-[70] flex items-center justify-center p-4">
+            {toasts.map(toast => (
+              <div key={toast.id} className="pointer-events-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] w-full max-w-sm p-8 animate-in zoom-in-95 fade-in duration-300">
+                <div className="flex flex-col items-center text-center gap-4">
                   <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                    toast.type === 'success' ? 'bg-emerald-50' : 'bg-red-50'
+                    "w-16 h-16 rounded-2xl flex items-center justify-center",
+                    toast.type === 'success' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'
                   )}>
                     {toast.type === 'success' ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                      <CheckCircle2 className="w-8 h-8" />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      <AlertCircle className="w-8 h-8" />
                     )}
                   </div>
-                  <div>
-                    <h3 className={cn(
-                      "text-sm font-bold",
-                      toast.type === 'success' ? 'text-emerald-800' : 'text-red-800'
-                    )}>
-                      {toast.type === 'success' ? 'Berhasil' : 'Kesalahan'}
+                  
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-slate-900 text-lg">
+                      {toast.type === 'success' ? 'Sukses!' : 'Gagal'}
                     </h3>
-                    <p className="text-xs text-ink-400 mt-0.5">
-                      {toast.type === 'success' ? 'Perubahan disimpan' : 'Terjadi kesalahan'}
+                    <p className="text-slate-500 text-sm leading-relaxed px-4">
+                      {toast.message}
                     </p>
                   </div>
-                </div>
 
-                {/* Message */}
-                <p className="text-sm text-ink-600 mb-5">
-                  {toast.message}
-                </p>
-
-                {/* Close Button */}
-                <div className="flex gap-2">
                   <button
                     onClick={() => removeToast(toast.id)}
-                    className="flex-1 h-9 rounded-lg text-sm font-semibold transition-all"
-                    style={{
-                      background: toast.type === 'success' 
-                        ? 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' 
-                        : 'linear-gradient(135deg, #dc2626, #991b1b)',
-                      color: 'white'
-                    }}
+                    className="mt-4 w-full h-12 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg"
+                    style={{ background: toast.type === 'success' ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #e11d48, #f43f5e)' }}
                   >
-                    OK
+                    Dimengerti
                   </button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </>,
         document.body
       )}
 
-      <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}>
-          <Settings className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-ink-800">Pengaturan Koperasi</h1>
-          <p className="text-sm text-ink-400 mt-1">Kelola konfigurasi sistem koperasi</p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-red-800">{error}</p>
-          </div>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informasi Koperasi */}
-        <div className="bg-white rounded-2xl border border-surface-300 shadow-card p-6">
-          <h2 className="text-lg font-bold text-ink-800 mb-5">Informasi Koperasi</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Nama Koperasi */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Nama Koperasi <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.nama_koperasi ?? ''}
-                onChange={e => setForm({ ...form, nama_koperasi: e.target.value })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
+      <div className="max-w-5xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Modern Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3" style={{ background: 'linear-gradient(135deg, #1e293b, #334155)' }}>
+              <Settings className="w-7 h-7 text-white" />
             </div>
-
-            {/* Deskripsi */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-ink-700 mb-2">Deskripsi</label>
-              <textarea
-                value={form.deskripsi ?? ''}
-                onChange={e => setForm({ ...form, deskripsi: e.target.value })}
-                disabled={!isAdmin}
-                rows={3}
-                className="w-full px-3 py-2 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400 resize-none"
-              />
-            </div>
-
-            {/* Alamat */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-ink-700 mb-2">Alamat</label>
-              <input
-                type="text"
-                value={form.alamat ?? ''}
-                onChange={e => setForm({ ...form, alamat: e.target.value })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
-            </div>
-
-            {/* No Telepon */}
             <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">No. Telepon</label>
-              <input
-                type="text"
-                value={form.no_telepon ?? ''}
-                onChange={e => setForm({ ...form, no_telepon: e.target.value })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">Email</label>
-              <input
-                type="email"
-                value={form.email ?? ''}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pengaturan Koperasi</h1>
+              <p className="text-slate-500 font-medium text-sm mt-1">Konfigurasi parameter identitas & bisnis koperasi</p>
             </div>
           </div>
+
+          {isAdmin && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { setForm(setting || {}); addToast('Form dikembalikan ke data awal', 'success') }}
+                className="h-11 px-5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm bg-white hover:bg-slate-50 transition-all flex items-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </button>
+              <button
+                form="settings-form"
+                type="submit"
+                disabled={saving}
+                className="h-11 px-8 rounded-xl text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-accent-600/20 active:scale-95 transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Simpan Perubahan
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Pengaturan Pinjaman */}
-        <div className="bg-white rounded-2xl border border-surface-300 shadow-card p-6">
-          <h2 className="text-lg font-bold text-ink-800 mb-5">Pengaturan Pinjaman</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Bunga Default */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Bunga Default (%) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={form.bunga_default ?? ''}
-                onChange={e => setForm({ ...form, bunga_default: e.target.value ? parseFloat(e.target.value) : 0 })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
+        {error && (
+          <div className="px-5 py-4 rounded-2xl bg-rose-50 border border-rose-100 flex items-start gap-4 animate-shake">
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm border border-rose-100">
+              <AlertCircle className="w-5 h-5 text-rose-500" />
             </div>
-
-            {/* Denda Keterlambatan */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Denda Keterlambatan (%) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={form.denda_keterlambatan ?? ''}
-                onChange={e => setForm({ ...form, denda_keterlambatan: e.target.value ? parseFloat(e.target.value) : 0 })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
+            <div className="flex-1 pt-1">
+              <p className="text-sm font-bold text-rose-900">Kesalahan Sistem</p>
+              <p className="text-xs text-rose-600 mt-0.5">{error}</p>
             </div>
-
-            {/* Min Nominal Pinjaman */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Minimal Pinjaman (Rp) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="1000"
-                min="0"
-                value={form.min_nominal_pinjaman ?? ''}
-                onChange={e => setForm({ ...form, min_nominal_pinjaman: e.target.value ? parseFloat(e.target.value) : 0 })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
-            </div>
-
-            {/* Max Nominal Pinjaman */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Maksimal Pinjaman (Rp)
-              </label>
-              <input
-                type="number"
-                step="1000"
-                min="0"
-                value={form.max_nominal_pinjaman ?? ''}
-                onChange={e => setForm({ ...form, max_nominal_pinjaman: e.target.value ? parseFloat(e.target.value) : undefined })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
-            </div>
-
-            {/* Max Lama Angsuran */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Maksimal Lama Angsuran (bulan) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="360"
-                value={form.max_lama_angsuran ?? ''}
-                onChange={e => setForm({ ...form, max_lama_angsuran: e.target.value ? parseInt(e.target.value) : 0 })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Pengaturan Simpanan */}
-        <div className="bg-white rounded-2xl border border-surface-300 shadow-card p-6">
-          <h2 className="text-lg font-bold text-ink-800 mb-5">Pengaturan Simpanan</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Saldo Minimal */}
-            <div>
-              <label className="block text-sm font-semibold text-ink-700 mb-2">
-                Saldo Minimal Simpanan (Rp) <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                step="1000"
-                min="0"
-                value={form.saldo_minimal_simpanan ?? ''}
-                onChange={e => setForm({ ...form, saldo_minimal_simpanan: e.target.value ? parseFloat(e.target.value) : 0 })}
-                disabled={!isAdmin}
-                className="w-full h-10 px-3 rounded-lg border border-surface-300 text-sm text-ink-800
-                           bg-white outline-none focus:ring-2 focus:ring-[#2a7fc5]/20 focus:border-[#2a7fc5]
-                           transition-all disabled:bg-surface-50 disabled:text-ink-400"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        {isAdmin && (
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white flex items-center gap-2
-                         transition-all hover:opacity-90 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}
-            >
-              {saving ? <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Menyimpan...
-              </> : <>
-                <CheckCircle2 className="w-4 h-4" />
-                Simpan Pengaturan
-              </>}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setForm(setting || {}); setError(null) }}
-              disabled={saving}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-surface-300
-                         text-ink-600 hover:bg-surface-100 transition-all disabled:opacity-60"
-            >
-              Reset
+            <button onClick={() => setError(null)} className="text-rose-400 hover:text-rose-600 bg-white/50 p-2 rounded-lg transition-colors">
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
+
+        <form id="settings-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          
+          {/* Left Column: Identity */}
+          <div className="md:col-span-12 lg:col-span-7 space-y-8">
+            <div className="bg-white rounded-[2rem] border border-slate-200/60 p-8 shadow-sm transition-shadow hover:shadow-md">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-indigo-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Identitas Koperasi</h2>
+                  <p className="text-xs text-slate-400 font-medium">Data publik yang muncul di login & kwitansi</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Nama Koperasi</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.nama_koperasi ?? ''}
+                    onChange={e => setForm({ ...form, nama_koperasi: e.target.value })}
+                    disabled={!isAdmin}
+                    className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-accent-400/30 focus:ring-4 focus:ring-accent-400/5 transition-all text-slate-900 font-semibold outline-none"
+                    placeholder="Masukkan nama koperasi..."
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Deskripsi Singkat</label>
+                  <textarea
+                    rows={4}
+                    value={form.deskripsi ?? ''}
+                    onChange={e => setForm({ ...form, deskripsi: e.target.value })}
+                    disabled={!isAdmin}
+                    className="w-full p-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-accent-400/30 transition-all text-slate-900 font-semibold outline-none resize-none"
+                    placeholder="Tuliskan slogan atau deskripsi singkat..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Email Instansi</label>
+                    <input
+                      type="email"
+                      value={form.email ?? ''}
+                      onChange={e => setForm({ ...form, email: e.target.value })}
+                      disabled={!isAdmin}
+                      className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-accent-400/30 transition-all text-slate-900 font-semibold outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">No. Telepon</label>
+                    <input
+                      type="text"
+                      value={form.no_telepon ?? ''}
+                      onChange={e => setForm({ ...form, no_telepon: e.target.value })}
+                      disabled={!isAdmin}
+                      className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-accent-400/30 transition-all text-slate-900 font-semibold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Alamat Lengkap</label>
+                  <input
+                    type="text"
+                    value={form.alamat ?? ''}
+                    onChange={e => setForm({ ...form, alamat: e.target.value })}
+                    disabled={!isAdmin}
+                    className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-accent-400/30 transition-all text-slate-900 font-semibold outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Calculations */}
+          <div className="md:col-span-12 lg:col-span-5 space-y-8">
+            
+            {/* Loan Config */}
+            <div className="bg-white rounded-[2rem] border border-slate-200/60 p-8 shadow-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                  <Landmark className="w-6 h-6 text-emerald-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Parameter Pinjaman</h2>
+                  <p className="text-xs text-slate-400 font-medium">Aturan bunga dan plafon kredit</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
+                    <label className="text-[10px] uppercase font-extrabold text-slate-400 mb-1.5 block">Bunga Default</label>
+                    <div className="flex items-center gap-2">
+                       <input
+                        type="number"
+                        step="0.01"
+                        value={form.bunga_default ?? ''}
+                        onChange={e => setForm({ ...form, bunga_default: parseFloat(e.target.value) || 0 })}
+                        disabled={!isAdmin}
+                        className="w-full bg-transparent text-xl font-extrabold text-slate-900 outline-none"
+                      />
+                      <span className="text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
+                    <label className="text-[10px] uppercase font-extrabold text-slate-400 mb-1.5 block">Denda Keterlambatan</label>
+                    <div className="flex items-center gap-2">
+                       <input
+                        type="number"
+                        step="0.01"
+                        value={form.denda_keterlambatan ?? ''}
+                        onChange={e => setForm({ ...form, denda_keterlambatan: parseFloat(e.target.value) || 0 })}
+                        disabled={!isAdmin}
+                        className="w-full bg-transparent text-xl font-extrabold text-slate-900 outline-none"
+                      />
+                      <span className="text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Minimal Pinjaman (Rp)</label>
+                  <input
+                    type="number"
+                    step="1000"
+                    value={form.min_nominal_pinjaman ?? ''}
+                    onChange={e => setForm({ ...form, min_nominal_pinjaman: parseFloat(e.target.value) || 0 })}
+                    disabled={!isAdmin}
+                    className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-emerald-400/30 transition-all text-slate-900 font-extrabold outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Maksimal Pinjaman (Rp)</label>
+                  <input
+                    type="number"
+                    step="1000"
+                    value={form.max_nominal_pinjaman ?? ''}
+                    onChange={e => setForm({ ...form, max_nominal_pinjaman: e.target.value ? parseFloat(e.target.value) : undefined })}
+                    disabled={!isAdmin}
+                    className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-emerald-400/30 transition-all text-slate-900 font-extrabold outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Tenor Maksimal (Bulan)</label>
+                  <input
+                    type="number"
+                    value={form.max_lama_angsuran ?? ''}
+                    onChange={e => setForm({ ...form, max_lama_angsuran: parseInt(e.target.value) || 0 })}
+                    disabled={!isAdmin}
+                    className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-emerald-400/30 transition-all text-slate-900 font-extrabold outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Savings Config */}
+            <div className="bg-white rounded-[2rem] border border-slate-200/60 p-8 shadow-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Parameter Simpanan</h2>
+                  <p className="text-xs text-slate-400 font-medium">Batas minimal saldo & penarikan</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-widest text-slate-400 mb-2 block">Saldo Minimal Mengendap (Rp)</label>
+                  <input
+                    type="number"
+                    step="1000"
+                    value={form.saldo_minimal_simpanan ?? ''}
+                    onChange={e => setForm({ ...form, saldo_minimal_simpanan: parseFloat(e.target.value) || 0 })}
+                    disabled={!isAdmin}
+                    className="w-full h-12 px-5 rounded-2xl bg-slate-50 border-2 border-transparent focus:bg-white focus:border-amber-400/30 transition-all text-slate-900 font-extrabold outline-none"
+                  />
+                  <div className="mt-3 flex items-start gap-2 bg-amber-50/50 p-3 rounded-xl border border-amber-100/50">
+                    <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-amber-700 leading-tight">
+                      Anggota tidak dapat menarik saldo jika nominal sisa penarikan berada di bawah angka ini.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </form>
 
         {!isAdmin && (
-          <div className="px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
-            <p className="text-sm text-amber-800">
-              ℹ️ Hanya admin yang dapat mengubah pengaturan koperasi
-            </p>
-          </div>
+           <div className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-slate-100 border border-slate-200 text-slate-500 font-medium text-sm">
+             <AlertCircle className="w-4 h-4" />
+             Anda dalam mode baca (Read Only). Hubungi Super Admin untuk izin pengeditan.
+           </div>
         )}
-      </form>
       </div>
     </>
   )

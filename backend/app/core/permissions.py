@@ -16,10 +16,63 @@ security = HTTPBearer()
 
 
 # ============================================================================
-# PERMISSION MATRIX — now fully driven by database (master_role_menu)
-# The old hardcoded PERMISSIONS dict has been removed.
-# Permissions are fetched at runtime via get_user_permissions_from_db().
+# PERMISSION MATRIX — used as 'source of truth' for database seeding.
+# Individual permissions are checked at runtime via get_user_effective_permissions()
 # ============================================================================
+PERMISSIONS = {
+    "super_admin": {
+        "dashboard": ["read"],
+        "anggota": ["create", "read", "update", "delete", "export"],
+        "profil_anggota": ["read", "update"],
+        "jenis_simpanan": ["create", "read", "update", "delete"],
+        "simpanan": ["create", "read", "update", "delete", "setor", "tarik", "export"],
+        "pinjaman": ["create", "read", "update", "delete", "verify", "approve", "reject", "export"],
+        "angsuran": ["create", "read", "update", "delete", "bayar", "export"],
+        "laporan": ["read", "export"],
+        "settings": ["read", "update"],
+        "rbac": ["read", "update", "manage"],
+        "users": ["create", "read", "update", "delete"],
+        "roles": ["create", "read", "update", "delete"],
+        "menus": ["create", "read", "update", "delete"],
+        "audit": ["read", "export"]
+    },
+    "admin": {
+        "dashboard": ["read"],
+        "anggota": ["create", "read", "update", "export"],
+        "profil_anggota": ["read", "update"],
+        "jenis_simpanan": ["read"],
+        "simpanan": ["read", "setor", "tarik", "export"],
+        "pinjaman": ["create", "read", "update", "export"],
+        "angsuran": ["read", "bayar", "export"],
+        "laporan": ["read", "export"],
+        "settings": ["read", "update"]
+    },
+    "ketua": {
+        "dashboard": ["read"],
+        "anggota": ["read", "export"],
+        "profil_anggota": ["read"],
+        "simpanan": ["read", "export"],
+        "pinjaman": ["read", "verify", "approve", "reject", "export"],
+        "angsuran": ["read", "export"],
+        "laporan": ["read", "export"],
+        "settings": ["read", "update"]
+    },
+    "bendahara": {
+        "dashboard": ["read"],
+        "anggota": ["read"],
+        "simpanan": ["read", "setor", "tarik", "export"],
+        "pinjaman": ["read", "export"],
+        "angsuran": ["read", "bayar", "export"],
+        "laporan": ["read", "export"]
+    },
+    "anggota": {
+        "dashboard": ["read"],
+        "profil_anggota": ["read", "update"],
+        "simpanan": ["read"],
+        "pinjaman": ["create", "read"],
+        "angsuran": ["read"]
+    }
+}
 
 
 # ============================================================================

@@ -9,10 +9,10 @@ const PUBLIC_ROUTES = ['/login']
 const PROTECTED_PREFIXES = ['/dashboard']
 
 // ============================================================================
-// Middleware
+// Proxy (Formerly Middleware)
 // ============================================================================
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Get token from cookies (set by login page after auth)

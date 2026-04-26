@@ -14,6 +14,7 @@ import FormPinjaman from './FormPinjaman'
 import { Pinjaman, formatRupiah } from './types'
 import Toast, { ToastData } from '@/components/ui/Toast'
 import Skeleton from '@/components/ui/Skeleton'
+import AnggotaPinjaman from '../AnggotaPinjaman'
 
 // ============================================================================
 // Types lokal (untuk PaginatedResponse)
@@ -75,6 +76,11 @@ export default function PinjamanPage() {
   const canVerifikasi = can('pinjaman', 'approve')
 
   const LIMIT = 10
+
+  // Jika yang login adalah Anggota murni, alihkan ke tampilan mobile member
+  if (user?.role === 'anggota') {
+    return <AnggotaPinjaman user={user} />
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)

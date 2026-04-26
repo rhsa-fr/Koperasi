@@ -57,7 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: data.id_user,
             username: data.username,
             role: data.role,
-            permissions: data.permissions
+            permissions: data.permissions,
+            anggota: data.anggota // Include linked member info
           }
           tokenStorage.setUser(user) // Update sync storage
           setState({ user, token: token!, isAuthenticated: true, isLoading: false })

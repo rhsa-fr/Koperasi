@@ -16,6 +16,7 @@ from app.schemas.pinjaman import (
 from app.services import syarat_peminjaman_service
 from app.core.exceptions import NotFoundException, BadRequestException, BusinessLogicException
 from app.config import settings
+from app.models.setting import KoperasiSetting
 
 
 def generate_no_pinjaman() -> str:
@@ -70,6 +71,18 @@ def create_pinjaman(
         raise BusinessLogicException(
             "Anggota masih memiliki pinjaman aktif atau pending"
         )
+    
+    # Validasi terhadap Setting Koperasi
+    koperasi_setting = db.query(KoperasiSetting).first()
+    if koperasi_setting:
+        if float(data.nominal_pinjaman) > float(koperasi_setting.max_pinjaman):
+            raise BusinessLogicException(
+                f"Nominal pinjaman melebihi batas maksimal yang diizinkan (Rp {float(koperasi_setting.max_pinjaman):,.0f})"
+            )
+        if float(data.nominal_pinjaman) < float(koperasi_setting.min_pinjaman):
+            raise BusinessLogicException(
+                f"Nominal pinjaman kurang dari batas minimal yang diizinkan (Rp {float(koperasi_setting.min_pinjaman):,.0f})"
+            )
     
     # Kalkulasi
     calc = calculate_pinjaman(
@@ -142,6 +155,31 @@ def approve_pinjaman(
     # Generate angsuran schedule
     from app.services.angsuran_service import generate_angsuran_schedule
     generate_angsuran_schedule(db, pinjaman)
+    
+    # Generate Notifikasi untuk Peminjam
+    try:
+        from app.models.notifikasi import Notifikasi
+        from app.models.user import User
+        anggota = pinjaman.anggota
+        user_anggota = db.query(User).filter(
+            (User.username == anggota.email) | 
+            (User.username == anggota.no_anggota) | 
+            (User.username == anggota.nama_lengkap)
+        ).first()
+        
+        if user_anggota:
+            formatted_nominal = f"{float(pinjaman.nominal_pinjaman):,.0f}".replace(",", ".")
+            notif = Notifikasi(
+                id_user=user_anggota.id_user,
+                tipe='success',
+                judul='Pinjaman Disetujui! 🎉',
+                pesan=f"Pengajuan pinjaman Anda ({pinjaman.no_pinjaman}) senilai Rp {formatted_nominal} telah disetujui. Silakan cek detail pencairan.",
+                is_read=False
+            )
+            db.add(notif)
+            db.commit()
+    except Exception as e:
+        print("Gagal mengirim notif approval:", e)
     
     return pinjaman
 

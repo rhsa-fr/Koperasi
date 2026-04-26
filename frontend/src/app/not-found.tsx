@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function NotFound() {
+  const router = useRouter()
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-100 p-4">
       <div className="text-center max-w-md">
@@ -41,12 +45,12 @@ export default function NotFound() {
           >
             Ke Dashboard
           </Link>
-          <Link
-            href="javascript:history.back()"
+          <button
+            onClick={() => router.back()}
             className="px-6 py-2.5 rounded-xl text-sm font-semibold text-ink-600 border border-surface-300 hover:bg-surface-200 transition-all"
           >
             Kembali
-          </Link>
+          </button>
         </div>
 
       </div>

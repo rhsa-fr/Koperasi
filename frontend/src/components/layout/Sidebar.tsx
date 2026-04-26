@@ -81,7 +81,7 @@ export default function Sidebar() {
     const initSidebar = async () => {
       try {
         const [setRes, navRes] = await Promise.all([
-          api.get<Setting>('/setting'),
+          api.get<Setting>(`/setting?t=${Date.now()}`),
           api.get<NavItem[]>('/sidebar')
         ])
         setSetting(setRes)
@@ -143,10 +143,12 @@ export default function Sidebar() {
           </div>
           {!collapsed && (
             <div className="animate-slide-in overflow-hidden">
-              <p className="text-xs font-semibold text-ink-800 leading-none">
-                {setting?.nama_koperasi || 'Kopdar'}
+              <p className="text-sm font-bold text-ink-800 leading-none">
+                {setting?.nama_koperasi || 'Koperasi Sijam'}
               </p>
-              <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase mt-0.5">Simpan Pinjam</p>
+              <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase mt-1">
+                {setting?.deskripsi?.slice(0, 35) || 'Koperasi Simpan Pinjam'}
+              </p>
             </div>
           )}
         </div>

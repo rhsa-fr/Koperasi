@@ -40,6 +40,9 @@ const config: Config = {
           700: '#0E1A29',
         }
       },
+      fontFamily: {
+        sans: ['var(--font-sans)', 'sans-serif'],
+      },
       backgroundImage: {
         'gradient-premium': 'linear-gradient(135deg, #1A2F4A 0%, #2A7FC5 100%)',
         'gradient-soft': 'linear-gradient(to bottom right, #F8FAFC, #F1F5F9)',
