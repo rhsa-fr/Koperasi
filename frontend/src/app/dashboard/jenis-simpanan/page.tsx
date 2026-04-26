@@ -313,7 +313,7 @@ function ModalForm({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function JenisSimpananPage() {
   const { user, can } = useAuth()
-  const isAdmin = can('simpanan', 'update') // Jenis simpanan dianggap bagian dari manajemen simpanan tingkat lanjut
+  const isAdmin = can('jenis_simpanan', 'update') || can('jenis_simpanan', 'create') // Gunakan permission khusus jenis_simpanan
 
   const [list, setList]       = useState<JenisSimpanan[]>([])
   const [loading, setLoading] = useState(true)

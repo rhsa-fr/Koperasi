@@ -62,8 +62,9 @@ def get_anggota_list(
     if status:
         query = query.filter(Anggota.status == status)
     if search:
+        search_term = f"%{search}%"
         query = query.filter(
-            Anggota.nama_lengkap.contains(search) | Anggota.no_anggota.contains(search)
+            Anggota.nama_lengkap.ilike(search_term) | Anggota.no_anggota.ilike(search_term)
         )
     total = query.count()
     anggota_list = query.order_by(Anggota.created_at.desc()).offset(skip).limit(limit).all()
