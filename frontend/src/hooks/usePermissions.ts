@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, Dispatch, SetStateAction } from 'react'
 
 interface PermissionMatrix {
   [module: string]: {
@@ -16,9 +16,9 @@ export function usePermissions() {
     matrix: PermissionMatrix,
     module: string,
     action: string,
-    setMatrix: (matrix: PermissionMatrix) => void
+    setMatrix: Dispatch<SetStateAction<PermissionMatrix>>
   ) => {
-    setMatrix(prev => {
+    setMatrix((prev: PermissionMatrix) => {
       const newMatrix = { ...prev }
       const newModule = { ...prev[module] }
 
