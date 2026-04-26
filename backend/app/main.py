@@ -31,14 +31,24 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# CORS Middleware
+# Robust CORS for Vercel & Authorization Headers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False, # Matikan ini jika menggunakan allow_origins=["*"] untuk fix CORS Network Error
+    allow_origin_regex="https://.*", # Allow any HTTPS origin (Vercel)
+    allow_origins=["http://localhost:3000", "http://localhost:3001"], # And local
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
+
+# Simple Request Logger for Vercel Logs
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"DEBUG: {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"DEBUG: Response Status: {response.status_code}")
+    return response
 
 # Mount static files (uploads)
 import os

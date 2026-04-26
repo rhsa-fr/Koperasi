@@ -222,8 +222,15 @@ export default function FormPinjaman({ onClose, onSuccess, initialAnggota, isMob
       }
 
       onSuccess(pinjaman)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Gagal membuat pengajuan')
+    } catch (e: any) {
+      console.error('Submit Pinjaman Error Object:', e)
+      console.dir(e)
+      
+      if (e.message === 'Network Error') {
+        setError('Network Error: Gagal menghubungi server. Pastikan ukuran file total tidak melebihi 5MB atau cek koneksi internet Anda.')
+      } else {
+        setError(e.message || 'Gagal membuat pengajuan')
+      }
     } finally {
       setLoading(false)
     }
