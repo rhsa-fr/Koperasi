@@ -75,13 +75,13 @@ def create_pinjaman(
     # Validasi terhadap Setting Koperasi
     koperasi_setting = db.query(KoperasiSetting).first()
     if koperasi_setting:
-        if float(data.nominal_pinjaman) > float(koperasi_setting.max_pinjaman):
+        if koperasi_setting.max_nominal_pinjaman and float(data.nominal_pinjaman) > float(koperasi_setting.max_nominal_pinjaman):
             raise BusinessLogicException(
-                f"Nominal pinjaman melebihi batas maksimal yang diizinkan (Rp {float(koperasi_setting.max_pinjaman):,.0f})"
+                f"Nominal pinjaman melebihi batas maksimal yang diizinkan (Rp {float(koperasi_setting.max_nominal_pinjaman):,.0f})"
             )
-        if float(data.nominal_pinjaman) < float(koperasi_setting.min_pinjaman):
+        if float(data.nominal_pinjaman) < float(koperasi_setting.min_nominal_pinjaman):
             raise BusinessLogicException(
-                f"Nominal pinjaman kurang dari batas minimal yang diizinkan (Rp {float(koperasi_setting.min_pinjaman):,.0f})"
+                f"Nominal pinjaman kurang dari batas minimal yang diizinkan (Rp {float(koperasi_setting.min_nominal_pinjaman):,.0f})"
             )
     
     # Kalkulasi

@@ -31,24 +31,42 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# Robust CORS for Vercel & Authorization Headers
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex="https://.*", # Allow any HTTPS origin (Vercel)
-    allow_origins=["http://localhost:3000", "http://localhost:3001"], # And local
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
+# ── AGGRESSIVE CUSTOM CORS MIDDLEWARE ──────────────────────────────────────────
+# This replaces standard CORSMiddleware to better handle Vercel's dynamic origins
+@app.middleware("http")
+async def custom_cors_middleware(request: Request, call_next):
+    # Handle Preflight (OPTIONS) requests
+    if request.method == "OPTIONS":
+        response = JSONResponse(
+            content="OK",
+            status_code=status.HTTP_200_OK
+        )
+    else:
+        response = await call_next(request)
+
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+    
+    return response
 
 # Simple Request Logger for Vercel Logs
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"DEBUG: {request.method} {request.url.path}")
-    response = await call_next(request)
-    print(f"DEBUG: Response Status: {response.status_code}")
-    return response
+    path = request.url.path
+    method = request.method
+    print(f"Incoming: {method} {path}")
+    try:
+        response = await call_next(request)
+        print(f"Outgoing: {method} {path} -> {response.status_code}")
+        return response
+    except Exception as e:
+        print(f"ERROR processing {method} {path}: {str(e)}")
+        raise e
 
 # Mount static files (uploads)
 import os

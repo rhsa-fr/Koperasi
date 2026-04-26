@@ -28,10 +28,7 @@ class PinjamanBase(BaseModel):
     @field_validator('nominal_pinjaman')
     @classmethod
     def validate_nominal(cls, v):
-        if v < 1000000:
-            raise ValueError('Nominal pinjaman minimal Rp 1.000.000')
-        if v > 100000000:
-            raise ValueError('Nominal pinjaman maksimal Rp 100.000.000')
+        # Biarkan service layer yang memvalidasi berdasarkan KoperasiSetting di DB
         return v
 
 

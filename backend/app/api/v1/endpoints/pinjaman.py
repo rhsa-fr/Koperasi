@@ -2,7 +2,7 @@
 # FILE: app/api/v1/endpoints/pinjaman.py
 # ============================================================================
 
-from fastapi import APIRouter, Depends, status, File, UploadFile
+from fastapi import APIRouter, Depends, status, File, UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
@@ -47,31 +47,7 @@ def get_pinjaman_list(
     page = (skip // limit) + 1 if limit > 0 else 1
     total_pages = (total + limit - 1) // limit if limit > 0 else 1
     
-    # Convert to response
-    data = []
-    for pinjaman in pinjaman_list:
-        response_data = {
-            "id_pinjaman": pinjaman.id_pinjaman,
-            "id_anggota": pinjaman.id_anggota,
-            "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
-            "no_pinjaman": pinjaman.no_pinjaman,
-            "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
-            "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
-            "bunga_persen": float(pinjaman.bunga_persen),
-            "total_bunga": float(pinjaman.total_bunga),
-            "total_pinjaman": float(pinjaman.total_pinjaman),
-            "lama_angsuran": pinjaman.lama_angsuran,
-            "nominal_angsuran": float(pinjaman.nominal_angsuran),
-            "keperluan": pinjaman.keperluan,
-            "status": pinjaman.status,
-            "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
-            "tanggal_pencairan": pinjaman.tanggal_pencairan,
-            "tanggal_lunas": pinjaman.tanggal_lunas,
-            "catatan_persetujuan": pinjaman.catatan_persetujuan,
-            "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
-            "created_at": pinjaman.created_at
-        }
-        data.append(PinjamanResponse(**response_data))
+    data = [PinjamanResponse.model_validate(p) for p in pinjaman_list]
     
     return PaginatedResponse(
         data=data,
@@ -92,35 +68,30 @@ def create_pinjaman(
     db: Session = Depends(get_db)
 ):
     """Create pengajuan pinjaman"""
-    pinjaman = pinjaman_service.create_pinjaman(
-        db=db,
-        data=data,
-        id_user=current_user["id"]
-    )
-    
-    response_data = {
-        "id_pinjaman": pinjaman.id_pinjaman,
-        "id_anggota": pinjaman.id_anggota,
-        "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
-        "no_pinjaman": pinjaman.no_pinjaman,
-        "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
-        "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
-        "bunga_persen": float(pinjaman.bunga_persen),
-        "total_bunga": float(pinjaman.total_bunga),
-        "total_pinjaman": float(pinjaman.total_pinjaman),
-        "lama_angsuran": pinjaman.lama_angsuran,
-        "nominal_angsuran": float(pinjaman.nominal_angsuran),
-        "keperluan": pinjaman.keperluan,
-        "status": pinjaman.status,
-        "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
-        "tanggal_pencairan": pinjaman.tanggal_pencairan,
-        "tanggal_lunas": pinjaman.tanggal_lunas,
-        "catatan_persetujuan": pinjaman.catatan_persetujuan,
-        "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
-        "created_at": pinjaman.created_at
-    }
-    
-    return PinjamanResponse(**response_data)
+    try:
+        pinjaman = pinjaman_service.create_pinjaman(
+            db=db,
+            data=data,
+            id_user=current_user["id"]
+        )
+        
+        # Use model_validate for cleaner and safer response
+        # It will automatically handle Decimal to float conversion
+        return PinjamanResponse.model_validate(pinjaman)
+        
+    except Exception as e:
+        import traceback
+        print("\n" + "!"*60)
+        print("❌ CRITICAL ERROR IN CREATE_PINJAMAN")
+        traceback.print_exc()
+        print("!"*60 + "\n")
+        
+        if hasattr(e, 'status_code'):
+            raise e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 # ─── Static routes MUST be before /{id_pinjaman} ──────────────────────────────
