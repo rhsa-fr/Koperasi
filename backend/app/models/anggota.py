@@ -2,7 +2,7 @@
 # FILE: app/models/anggota.py  — REPLACE existing file
 # ============================================================================
 
-from sqlalchemy import Column, Integer, String, Date, Enum, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Date, Enum, TIMESTAMP, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
