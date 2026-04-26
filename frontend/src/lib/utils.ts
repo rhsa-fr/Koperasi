@@ -22,21 +22,28 @@ export function formatDate(dateStr: string | Date): string {
   }).format(date)
 }
 
-export function getFileUrl(path: string | null): string {
+export function getFileUrl(path: string | null | undefined): string {
   if (!path) return ''
+  if (path.startsWith('data:')) return path
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   return `${apiBase}/uploads/${path}`
 }
 
-export function isImage(filename: string | null): boolean {
-  if (!filename) return false
-  const ext = filename.split('.').pop()?.toLowerCase()
+export function isImage(path: string | null | undefined): boolean {
+  if (!path) return false
+  if (path.startsWith('data:')) {
+    return path.includes('image/')
+  }
+  const ext = path.split('.').pop()?.toLowerCase()
   return ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')
 }
 
-export function isPdf(filename: string | null): boolean {
-  if (!filename) return false
-  const ext = filename.split('.').pop()?.toLowerCase()
+export function isPdf(path: string | null | undefined): boolean {
+  if (!path) return false
+  if (path.startsWith('data:')) {
+    return path.includes('application/pdf')
+  }
+  const ext = path.split('.').pop()?.toLowerCase()
   return ext === 'pdf'
 }
 

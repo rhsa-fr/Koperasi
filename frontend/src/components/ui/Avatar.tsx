@@ -1,6 +1,6 @@
 // src/components/ui/Avatar.tsx
 import { User } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getFileUrl } from '@/lib/utils'
 
 interface AvatarProps {
   src?: string | null
@@ -17,6 +17,7 @@ const SIZE_MAP = {
 
 export default function Avatar({ src, size = 'md', className }: AvatarProps) {
   const { wrapper, icon } = SIZE_MAP[size]
+  const imageUrl = getFileUrl(src)
 
   return (
     <div
@@ -26,13 +27,13 @@ export default function Avatar({ src, size = 'md', className }: AvatarProps) {
         className
       )}
     >
-      {src ? (
+      {imageUrl ? (
         <img 
-          src={src} 
+          src={imageUrl} 
           alt="Avatar" 
           className="w-full h-full object-cover"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '' // Fallback to icon if error
+            (e.target as HTMLImageElement).style.display = 'none'
           }}
         />
       ) : (

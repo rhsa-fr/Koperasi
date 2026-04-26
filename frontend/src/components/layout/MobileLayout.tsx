@@ -6,6 +6,7 @@ import { Home, Wallet, CreditCard, User, Menu, Bell, Loader2, ArrowLeft, CheckCi
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 import { api, API_BASE_URL } from '@/lib/axios'
+import Avatar from '@/components/ui/Avatar'
 
 interface NotifikasiResponse {
   id_notifikasi: number;
@@ -90,17 +91,11 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
         {/* Mobile Header */}
         <header className="absolute top-0 inset-x-0 z-30 h-16 bg-white/80 backdrop-blur-xl border-b border-surface-200/60 px-5 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-             <div className="w-9 h-9 rounded-full bg-gradient-premium flex items-center justify-center text-white text-sm font-bold shadow-md shadow-accent-600/30 overflow-hidden">
-               {user?.anggota?.foto_profil ? (
-                 <img 
-                   src={`${API_BASE_URL}/uploads/${user.anggota.foto_profil}`} 
-                   alt="User" 
-                   className="w-full h-full object-cover"
-                 />
-               ) : (
-                 user?.username.charAt(0).toUpperCase()
-               )}
-             </div>
+             <Avatar 
+               src={user?.anggota?.foto_profil} 
+               size="md"
+               className="shadow-md shadow-accent-600/30"
+             />
              <div>
                <p className="text-[10px] font-bold text-accent-600 uppercase tracking-widest leading-none">
                  {setting?.nama_koperasi || 'Koperasi Sijam'}

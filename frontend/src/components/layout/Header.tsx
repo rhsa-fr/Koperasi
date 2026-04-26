@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react'
 import ModalGantiPassword from '../ModalGantiPassword'
 import Toast, { ToastData } from '@/components/ui/Toast'
 import { api, API_BASE_URL } from '@/lib/axios'
+import Avatar from '@/components/ui/Avatar'
 
 const PAGE_TITLES: Record<string, { title: string; description: string }> = {
   '/dashboard':                { title: 'Dashboard',      description: 'Ringkasan data koperasi'          },
@@ -348,18 +349,10 @@ export default function Header() {
               className={cn('flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg transition-all duration-150',
                 userMenuOpen ? 'bg-surface-200' : 'hover:bg-surface-100')}
             >
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}>
-                {user?.anggota?.foto_profil ? (
-                  <img 
-                    src={`${API_BASE_URL}/uploads/${user.anggota.foto_profil}`} 
-                    alt="User" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-4 h-4 text-white" />
-                )}
-              </div>
+               <Avatar 
+                src={user?.anggota?.foto_profil} 
+                size="sm"
+               />
               <div className="hidden md:block text-left">
                 <p className="text-xs font-semibold text-ink-800 leading-none capitalize">
                   {user?.username?.split('@')?.[0] || 'User'}
@@ -378,18 +371,10 @@ export default function Header() {
               <div className="absolute right-0 top-10 w-56 bg-white rounded-xl border border-surface-300 shadow-lg overflow-hidden animate-fade-in">
                 <div className="px-4 py-3 border-b border-surface-200 bg-surface-50">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
-                      style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}>
-                      {user?.anggota?.foto_profil ? (
-                        <img 
-                          src={`${API_BASE_URL}/uploads/${user.anggota.foto_profil}`} 
-                          alt="User" 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-5 h-5 text-white" />
-                      )}
-                    </div>
+                    <Avatar 
+                      src={user?.anggota?.foto_profil} 
+                      size="lg"
+                    />
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-ink-800 truncate">{user?.username}</p>
                       <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-md',

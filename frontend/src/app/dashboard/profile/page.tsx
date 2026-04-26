@@ -17,6 +17,7 @@ import ModalGantiPassword from '@/components/ModalGantiPassword'
 import FormPinjaman from '@/app/dashboard/pinjaman/FormPinjaman'
 import IconRenderer from '@/components/layout/IconRenderer'
 import AnggotaProfile from '../AnggotaProfile'
+import Avatar from '@/components/ui/Avatar'
 
 // ============================================================================
 // Types
@@ -34,6 +35,7 @@ interface ProfileFull {
     nama_lengkap?: string
     email?: string
     no_telepon?: string
+    foto_profil?: string | null
     total_simpanan?: number
     total_pinjaman_aktif?: number
   } | null
@@ -109,7 +111,7 @@ export default function ProfilePage() {
           <Loader2 className="w-10 h-10 animate-spin text-accent-600" />
           <div className="absolute inset-0 blur-xl bg-accent-400/20 animate-pulse" />
         </div>
-        <p className="text- ink-400 text-sm font-bold tracking-widest uppercase">Sinkronisasi Identitas...</p>
+        <p className="text-ink-400 text-sm font-bold tracking-widest uppercase">Sinkronisasi Identitas...</p>
       </div>
     )
   }
@@ -129,9 +131,11 @@ export default function ProfilePage() {
         <div className="relative flex flex-col md:flex-row items-center gap-8">
           {/* Avatar Area */}
           <div className="relative">
-             <div className="w-24 h-24 md:w-32 md:h-32 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-inner overflow-hidden group-hover:scale-105 transition-transform duration-500">
-               <User className="w-12 h-12 md:w-16 md:h-16 text-white" />
-             </div>
+             <Avatar 
+                src={profile?.anggota?.foto_profil} 
+                size="xl" 
+                className="md:w-32 md:h-32 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 group-hover:scale-105 transition-transform duration-500"
+             />
              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-lg transform rotate-6 border border-surface-100">
                <BadgeCheck className="w-6 h-6 text-accent-600" />
              </div>

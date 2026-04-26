@@ -6,6 +6,7 @@ import { api, API_BASE_URL } from '@/lib/axios'
 import { useAuth } from '@/context/AuthContext'
 import ModalGantiPassword from '@/components/ModalGantiPassword'
 import Toast, { ToastData } from '@/components/ui/Toast'
+import Avatar from '@/components/ui/Avatar'
 
 export default function AnggotaProfile({ user }: { user: any }) {
   const { logout } = useAuth()
@@ -17,9 +18,9 @@ export default function AnggotaProfile({ user }: { user: any }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [loggingOut, setLoggingOut] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [toast, setToast] = useState<ToastData | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   
   // State untuk API Wilayah
   const [listProvinsi, setListProvinsi] = useState<any[]>([])
@@ -461,24 +462,19 @@ export default function AnggotaProfile({ user }: { user: any }) {
          <div className="relative z-10 flex items-center gap-5">
             <div 
                onClick={() => document.getElementById('foto-upload')?.click()}
-               className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-inner shrink-0 overflow-hidden group/avatar cursor-pointer relative"
+               className="relative cursor-pointer group"
             >
-               {profile?.profil?.foto_profil ? (
-                 <img 
-                   src={`${API_BASE_URL}/uploads/${profile.profil.foto_profil}`} 
-                   alt="Profile" 
-                   className="w-full h-full object-cover"
-                 />
-               ) : (
-                 <User className="w-8 h-8 text-white/90" />
-               )}
+               <Avatar 
+                  src={profile?.profil?.foto_profil || profile?.foto_profil} 
+                  size="xl"
+               />
                
-               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+               <div className="absolute inset-0 bg-black/40 rounded-[2rem] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Camera className="w-5 h-5 text-white" />
                </div>
                
                {uploading && (
-                 <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                 <div className="absolute inset-0 bg-white/60 rounded-[2rem] flex items-center justify-center">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                  </div>
                )}
@@ -495,7 +491,7 @@ export default function AnggotaProfile({ user }: { user: any }) {
                <h2 className="text-xl font-extrabold tracking-tight truncate">{profile?.nama_lengkap || user.username}</h2>
                <p className="text-xs text-slate-300 font-medium truncate mb-1.5">{profile?.email || 'Anggota Koperasi'}</p>
                <span className="inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-white/20 text-white/90">
-                 ID: {profile?.no_anggota || '-'}
+                 ID: {profile?.no_anggota || user?.anggota?.no_anggota || '-'}
                </span>
             </div>
          </div>

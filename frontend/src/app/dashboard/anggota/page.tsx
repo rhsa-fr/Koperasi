@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext'
 import ExportButtons from '@/components/ExportButtons'
 import Toast, { ToastData } from '@/components/ui/Toast'
 import Skeleton from '@/components/ui/Skeleton'
+import Avatar from '@/components/ui/Avatar'
 
 // ============================================================================
 // Types
@@ -61,22 +62,7 @@ const EMPTY_FORM = {
 // Avatar Anggota (siluet orang)
 // ============================================================================
 
-function AnggotaAvatar({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const cls = {
-    sm: { wrap: 'w-8 h-8 rounded-lg',    icon: 'w-4 h-4' },
-    md: { wrap: 'w-10 h-10 rounded-xl',  icon: 'w-5 h-5' },
-    lg: { wrap: 'w-14 h-14 rounded-2xl', icon: 'w-7 h-7' },
-  }[size]
-
-  return (
-    <div
-      className={cn('flex items-center justify-center shrink-0', cls.wrap)}
-      style={{ background: 'linear-gradient(135deg, #1a2f4a, #2a7fc5)' }}
-    >
-      <User className={cn(cls.icon, 'text-white')} />
-    </div>
-  )
-}
+// AnggotaAvatar removed as we use the generic Avatar component
 
 // ============================================================================
 // StatusBadge
@@ -159,7 +145,7 @@ function AnggotaModal({ open, onClose, onSaved, editData }: ModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <div className="flex items-center gap-3">
-            <AnggotaAvatar size="sm" />
+            <Avatar size="sm" />
             <h2 className="text-sm font-bold text-ink-800">
               {editData ? 'Edit Anggota' : 'Tambah Anggota Baru'}
             </h2>
@@ -552,7 +538,10 @@ export default function AnggotaPage() {
                   <td className="px-4 py-3 text-xs font-mono text-ink-400 whitespace-nowrap">{a.no_anggota}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <AnggotaAvatar size="sm" />
+                      <Avatar 
+                        src={(a as any).foto_profil} 
+                        size="sm" 
+                      />
                       <span className="font-semibold text-ink-800 whitespace-nowrap">{a.nama_lengkap}</span>
                     </div>
                   </td>
