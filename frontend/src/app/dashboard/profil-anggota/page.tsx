@@ -83,47 +83,7 @@ const STATUS_ANGGOTA: Record<string, { label: string; dot: string; bg: string; t
   keluar: { label: 'Keluar', dot: 'bg-red-400', bg: 'bg-red-50', text: 'text-red-600' },
 }
 
-// ── Data Wilayah Indonesia ────────────────────────────────────────────────────
-const WILAYAH: Record<string, { kota: string; kodePos: string }[]> = {
-  'Aceh': [{ kota: 'Banda Aceh', kodePos: '23111' }, { kota: 'Sabang', kodePos: '23511' }, { kota: 'Langsa', kodePos: '24411' }, { kota: 'Lhokseumawe', kodePos: '24311' }, { kota: 'Subulussalam', kodePos: '24882' }],
-  'Sumatera Utara': [{ kota: 'Medan', kodePos: '20111' }, { kota: 'Binjai', kodePos: '20711' }, { kota: 'Tebing Tinggi', kodePos: '20611' }, { kota: 'Pematangsiantar', kodePos: '21111' }, { kota: 'Sibolga', kodePos: '22511' }, { kota: 'Tanjungbalai', kodePos: '21311' }, { kota: 'Padangsidimpuan', kodePos: '22711' }, { kota: 'Gunungsitoli', kodePos: '22811' }],
-  'Sumatera Barat': [{ kota: 'Padang', kodePos: '25111' }, { kota: 'Bukittinggi', kodePos: '26111' }, { kota: 'Payakumbuh', kodePos: '26211' }, { kota: 'Sawahlunto', kodePos: '27411' }, { kota: 'Solok', kodePos: '27311' }, { kota: 'Padangpanjang', kodePos: '27111' }, { kota: 'Pariaman', kodePos: '25511' }],
-  'Riau': [{ kota: 'Pekanbaru', kodePos: '28111' }, { kota: 'Dumai', kodePos: '28811' }],
-  'Kepulauan Riau': [{ kota: 'Tanjungpinang', kodePos: '29111' }, { kota: 'Batam', kodePos: '29411' }],
-  'Jambi': [{ kota: 'Jambi', kodePos: '36111' }, { kota: 'Sungai Penuh', kodePos: '37111' }],
-  'Sumatera Selatan': [{ kota: 'Palembang', kodePos: '30111' }, { kota: 'Prabumulih', kodePos: '31111' }, { kota: 'Pagar Alam', kodePos: '31511' }, { kota: 'Lubuklinggau', kodePos: '31611' }],
-  'Bangka Belitung': [{ kota: 'Pangkalpinang', kodePos: '33111' }],
-  'Bengkulu': [{ kota: 'Bengkulu', kodePos: '38111' }],
-  'Lampung': [{ kota: 'Bandar Lampung', kodePos: '35111' }, { kota: 'Metro', kodePos: '34111' }],
-  'DKI Jakarta': [{ kota: 'Jakarta Pusat', kodePos: '10110' }, { kota: 'Jakarta Utara', kodePos: '14110' }, { kota: 'Jakarta Barat', kodePos: '11110' }, { kota: 'Jakarta Selatan', kodePos: '12110' }, { kota: 'Jakarta Timur', kodePos: '13110' }],
-  'Jawa Barat': [{ kota: 'Bandung', kodePos: '40111' }, { kota: 'Bogor', kodePos: '16111' }, { kota: 'Bekasi', kodePos: '17111' }, { kota: 'Depok', kodePos: '16411' }, { kota: 'Cimahi', kodePos: '40511' }, { kota: 'Cirebon', kodePos: '45111' }, { kota: 'Sukabumi', kodePos: '43111' }, { kota: 'Tasikmalaya', kodePos: '46111' }, { kota: 'Banjar', kodePos: '46311' }],
-  'Banten': [{ kota: 'Serang', kodePos: '42111' }, { kota: 'Tangerang', kodePos: '15111' }, { kota: 'Tangerang Selatan', kodePos: '15311' }, { kota: 'Cilegon', kodePos: '42411' }],
-  'Jawa Tengah': [{ kota: 'Semarang', kodePos: '50111' }, { kota: 'Solo', kodePos: '57111' }, { kota: 'Magelang', kodePos: '56111' }, { kota: 'Salatiga', kodePos: '50711' }, { kota: 'Pekalongan', kodePos: '51111' }, { kota: 'Tegal', kodePos: '52111' }, { kota: 'Purwokerto', kodePos: '53111' }],
-  'DI Yogyakarta': [{ kota: 'Yogyakarta', kodePos: '55111' }],
-  'Jawa Timur': [{ kota: 'Surabaya', kodePos: '60111' }, { kota: 'Malang', kodePos: '65111' }, { kota: 'Madiun', kodePos: '63111' }, { kota: 'Kediri', kodePos: '64111' }, { kota: 'Blitar', kodePos: '66111' }, { kota: 'Mojokerto', kodePos: '61311' }, { kota: 'Pasuruan', kodePos: '67111' }, { kota: 'Probolinggo', kodePos: '67211' }, { kota: 'Batu', kodePos: '65311' }],
-  'Bali': [{ kota: 'Denpasar', kodePos: '80111' }],
-  'Nusa Tenggara Barat': [{ kota: 'Mataram', kodePos: '83111' }, { kota: 'Bima', kodePos: '84111' }],
-  'Nusa Tenggara Timur': [{ kota: 'Kupang', kodePos: '85111' }],
-  'Kalimantan Barat': [{ kota: 'Pontianak', kodePos: '78111' }, { kota: 'Singkawang', kodePos: '79111' }],
-  'Kalimantan Tengah': [{ kota: 'Palangkaraya', kodePos: '73111' }],
-  'Kalimantan Selatan': [{ kota: 'Banjarmasin', kodePos: '70111' }, { kota: 'Banjarbaru', kodePos: '70711' }],
-  'Kalimantan Timur': [{ kota: 'Samarinda', kodePos: '75111' }, { kota: 'Balikpapan', kodePos: '76111' }, { kota: 'Bontang', kodePos: '75311' }],
-  'Kalimantan Utara': [{ kota: 'Tarakan', kodePos: '77111' }],
-  'Sulawesi Utara': [{ kota: 'Manado', kodePos: '95111' }, { kota: 'Bitung', kodePos: '95511' }, { kota: 'Tomohon', kodePos: '95411' }, { kota: 'Kotamobagu', kodePos: '95711' }],
-  'Gorontalo': [{ kota: 'Gorontalo', kodePos: '96111' }],
-  'Sulawesi Tengah': [{ kota: 'Palu', kodePos: '94111' }],
-  'Sulawesi Barat': [{ kota: 'Mamuju', kodePos: '91511' }],
-  'Sulawesi Selatan': [{ kota: 'Makassar', kodePos: '90111' }, { kota: 'Parepare', kodePos: '91111' }, { kota: 'Palopo', kodePos: '91911' }],
-  'Sulawesi Tenggara': [{ kota: 'Kendari', kodePos: '93111' }, { kota: 'Baubau', kodePos: '93711' }],
-  'Maluku': [{ kota: 'Ambon', kodePos: '97211' }, { kota: 'Tual', kodePos: '97611' }],
-  'Maluku Utara': [{ kota: 'Sofifi', kodePos: '97791' }, { kota: 'Ternate', kodePos: '97711' }],
-  'Papua': [{ kota: 'Jayapura', kodePos: '99111' }],
-  'Papua Barat': [{ kota: 'Manokwari', kodePos: '98311' }, { kota: 'Sorong', kodePos: '98411' }],
-  'Papua Selatan': [{ kota: 'Merauke', kodePos: '99611' }],
-  'Papua Tengah': [{ kota: 'Nabire', kodePos: '98811' }],
-  'Papua Pegunungan': [{ kota: 'Wamena', kodePos: '99511' }],
-}
-const PROVINSI_LIST = Object.keys(WILAYAH).sort()
+// Data wilayah kini diambil dinamis dari API Emsifa
 
 const PEKERJAAN_LIST = [
   'PNS / ASN', 'TNI / Polri', 'Pegawai BUMN', 'Pegawai Swasta', 'Wiraswasta / Pengusaha',
@@ -222,31 +182,62 @@ function ModalUpdateProfil({ anggota, onClose, onSuccess }: {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  const kotaList = form.provinsi ? (WILAYAH[form.provinsi] ?? []) : []
+  // State untuk API Wilayah
+  const [listProvinsi, setListProvinsi] = useState<any[]>([])
+  const [listKota, setListKota] = useState<any[]>([])
+  const [loadingWilayah, setLoadingWilayah] = useState(false)
+
+  // Fetch Provinsi saat modal dibuka
+  useEffect(() => {
+    const fetchProv = async () => {
+      setLoadingWilayah(true)
+      try {
+        const res = await fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+        const data = await res.json()
+        setListProvinsi(data)
+      } catch (e) {
+        console.error("Gagal load provinsi", e)
+      } finally {
+        setLoadingWilayah(false)
+      }
+    }
+    fetchProv()
+  }, [])
 
   const set = (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm(f => ({ ...f, [k]: e.target.value }))
 
-  const handleProvinsiChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const prov = e.target.value
-    const defaultKota = WILAYAH[prov]?.[0]
+  const handleProvinsiChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const provId = e.target.value
+    const provName = listProvinsi.find(p => p.id === provId)?.name || ''
+    
     setForm(f => ({
       ...f,
-      provinsi: prov,
-      kota: defaultKota?.kota ?? '',
-      kode_pos: defaultKota?.kodePos ?? '',
+      provinsi: provName,
+      kota: '',
+      kode_pos: '',
     }))
+    setListKota([])
+
+    if (provId) {
+      setLoadingWilayah(true)
+      try {
+        const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provId}.json`)
+        const data = await res.json()
+        setListKota(data)
+      } catch (e) {
+        console.error("Gagal load kota", e)
+      } finally {
+        setLoadingWilayah(false)
+      }
+    }
   }
 
   const handleKotaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const kotaNama = e.target.value
-    const found = kotaList.find(k => k.kota === kotaNama)
-    setForm(f => ({
-      ...f,
-      kota: kotaNama,
-      kode_pos: found?.kodePos ?? f.kode_pos,
-    }))
+    const kotaId = e.target.value
+    const kotaNama = listKota.find(k => k.id === kotaId)?.name || ''
+    setForm(f => ({ ...f, kota: kotaNama }))
   }
 
   const handleSubmit = async () => {
@@ -334,31 +325,30 @@ function ModalUpdateProfil({ anggota, onClose, onSuccess }: {
                 </div>
                 <div>
                   <label className={labelCls}>Provinsi</label>
-                  <select value={form.provinsi} onChange={handleProvinsiChange} className={inputCls}>
+                  <select 
+                    value={listProvinsi.find(p => p.name === form.provinsi)?.id || ''} 
+                    onChange={handleProvinsiChange} 
+                    className={inputCls}
+                  >
                     <option value="">— Pilih Provinsi —</option>
-                    {PROVINSI_LIST.map(p => (
-                      <option key={p} value={p}>{p}</option>
+                    {listProvinsi.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className={labelCls}>Kota / Kabupaten</label>
-                  {kotaList.length > 0 ? (
-                    <select value={form.kota} onChange={handleKotaChange} className={inputCls}>
-                      <option value="">— Pilih Kota —</option>
-                      {kotaList.map(k => (
-                        <option key={k.kota} value={k.kota}>{k.kota}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      value={form.kota}
-                      onChange={set('kota')}
-                      placeholder="Pilih provinsi dulu"
-                      disabled={!form.provinsi}
-                      className={inputCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
-                    />
-                  )}
+                  <select 
+                    value={listKota.find(k => k.name === form.kota)?.id || ''} 
+                    onChange={handleKotaChange} 
+                    disabled={!form.provinsi || loadingWilayah}
+                    className={inputCls + ' disabled:opacity-50'}
+                  >
+                    <option value="">{loadingWilayah ? 'Memuat...' : '— Pilih Kota —'}</option>
+                    {listKota.map(k => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={labelCls}>

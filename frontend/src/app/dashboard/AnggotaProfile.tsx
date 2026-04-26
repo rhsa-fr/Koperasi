@@ -20,6 +20,11 @@ export default function AnggotaProfile({ user }: { user: any }) {
   const [loggingOut, setLoggingOut] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [toast, setToast] = useState<ToastData | null>(null)
+  
+  // State untuk API Wilayah
+  const [listProvinsi, setListProvinsi] = useState<any[]>([])
+  const [listKota, setListKota] = useState<any[]>([])
+  const [loadingWilayah, setLoadingWilayah] = useState(false)
 
   const [editForm, setEditForm] = useState({
     nama_lengkap: '',
@@ -129,23 +134,35 @@ export default function AnggotaProfile({ user }: { user: any }) {
            <h2 className="text-2xl font-black tracking-tight text-ink-900">Informasi Akun</h2>
            {!isEditing && (
              <button 
-               onClick={() => {
-                 setEditForm({
-                   nama_lengkap: profile?.nama_lengkap || '',
-                   email: profile?.email || '',
-                   no_telepon: profile?.no_telepon || '',
-                   nik: profile?.profil?.nik || '',
-                   tempat_lahir: profile?.profil?.tempat_lahir || '',
-                   tanggal_lahir: profile?.profil?.tanggal_lahir || '',
-                   jenis_kelamin: profile?.profil?.jenis_kelamin || '',
-                   alamat: profile?.profil?.alamat || '',
-                   kota: profile?.profil?.kota || '',
-                   provinsi: profile?.profil?.provinsi || '',
-                   kode_pos: profile?.profil?.kode_pos || '',
-                   pekerjaan: profile?.profil?.pekerjaan || ''
-                 })
-                 setIsEditing(true)
-               }}
+                onClick={async () => {
+                   setEditForm({
+                     nama_lengkap: profile?.nama_lengkap || '',
+                     email: profile?.email || '',
+                     no_telepon: profile?.no_telepon || '',
+                     nik: profile?.profil?.nik || '',
+                     tempat_lahir: profile?.profil?.tempat_lahir || '',
+                     tanggal_lahir: profile?.profil?.tanggal_lahir || '',
+                     jenis_kelamin: profile?.profil?.jenis_kelamin || '',
+                     alamat: profile?.profil?.alamat || '',
+                     kota: profile?.profil?.kota || '',
+                     provinsi: profile?.profil?.provinsi || '',
+                     kode_pos: profile?.profil?.kode_pos || '',
+                     pekerjaan: profile?.profil?.pekerjaan || ''
+                   })
+                   setIsEditing(true)
+                   
+                   // Load Provinsi saat mulai edit
+                   setLoadingWilayah(true)
+                   try {
+                     const res = await fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+                     const data = await res.json()
+                     setListProvinsi(data)
+                   } catch (e) {
+                     console.error("Gagal load provinsi", e)
+                   } finally {
+                     setLoadingWilayah(false)
+                   }
+                }}
                className="text-xs font-bold text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-lg bg-blue-50"
              >
                Edit Profil
@@ -306,33 +323,68 @@ export default function AnggotaProfile({ user }: { user: any }) {
              )}
            </div>
 
-           <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-1">
-                <p className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-1.5">Kota</p>
-                {isEditing ? (
-                  <input 
-                    value={editForm.kota} 
-                    onChange={e => setEditForm({ ...editForm, kota: e.target.value })}
-                    className="w-full text-sm font-bold text-ink-900 border-b border-surface-300 focus:border-blue-500 focus:outline-none pb-1 bg-transparent"
-                  />
-                ) : (
-                  <p className="text-sm font-bold text-ink-900 truncate">{profile?.profil?.kota || '-'}</p>
-                )}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="col-span-1">
                 <p className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-1.5">Provinsi</p>
                 {isEditing ? (
-                  <input 
-                    value={editForm.provinsi} 
-                    onChange={e => setEditForm({ ...editForm, provinsi: e.target.value })}
+                  <select 
+                    value={listProvinsi.find(p => p.name === editForm.provinsi)?.id || ''} 
+                    onChange={async (e) => {
+                      const id = e.target.value
+                      const name = listProvinsi.find(p => p.id === id)?.name || ''
+                      setEditForm({ ...editForm, provinsi: name, kota: '' })
+                      setListKota([])
+                      
+                      if (id) {
+                        setLoadingWilayah(true)
+                        try {
+                          const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
+                          const data = await res.json()
+                          setListKota(data)
+                        } catch (e) {
+                          console.error("Gagal load kota", e)
+                        } finally {
+                          setLoadingWilayah(false)
+                        }
+                      }
+                    }}
                     className="w-full text-sm font-bold text-ink-900 border-b border-surface-300 focus:border-blue-500 focus:outline-none pb-1 bg-transparent"
-                  />
+                  >
+                    <option value="">Pilih Provinsi</option>
+                    {listProvinsi.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
                 ) : (
                   <p className="text-sm font-bold text-ink-900 truncate">{profile?.profil?.provinsi || '-'}</p>
                 )}
               </div>
+
               <div className="col-span-1">
-                <p className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-1.5">Pos</p>
+                <p className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-1.5">Kota/Kabupaten</p>
+                {isEditing ? (
+                  <select 
+                    value={listKota.find(k => k.name === editForm.kota)?.id || ''} 
+                    disabled={!editForm.provinsi || loadingWilayah}
+                    onChange={e => {
+                      const id = e.target.value
+                      const name = listKota.find(k => k.id === id)?.name || ''
+                      setEditForm({ ...editForm, kota: name })
+                    }}
+                    className="w-full text-sm font-bold text-ink-900 border-b border-surface-300 focus:border-blue-500 focus:outline-none pb-1 bg-transparent disabled:opacity-50"
+                  >
+                    <option value="">{loadingWilayah ? 'Memuat...' : 'Pilih Kota'}</option>
+                    {listKota.map(k => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm font-bold text-ink-900 truncate">{profile?.profil?.kota || '-'}</p>
+                )}
+              </div>
+              
+              <div className="col-span-1">
+                <p className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-1.5">Kode Pos</p>
                 {isEditing ? (
                   <input 
                     value={editForm.kode_pos} 
