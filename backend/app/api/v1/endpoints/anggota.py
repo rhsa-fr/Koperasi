@@ -133,23 +133,23 @@ def get_anggota_detail(
 
     from app.models.simpanan import Simpanan, TipeTransaksi
     from app.models.pinjaman import Pinjaman, StatusPinjaman
-    from sqlalchemy import func as sqlfunc, case
+    from sqlalchemy import case
 
     # ✅ FIX: Hitung total_simpanan dengan cara yang benar
-    # total_setor - total_tarik (bukan menjumlahkan saldo_akhir)
+    # Gunakan format case([(cond, val)], else_=val) yang lebih standar
     total_setor_result = db.query(
-        sqlfunc.sum(
+        func.sum(
             case(
-                (Simpanan.tipe_transaksi == TipeTransaksi.SETOR, Simpanan.nominal),
+                [(Simpanan.tipe_transaksi == TipeTransaksi.SETOR, Simpanan.nominal)],
                 else_=0
             )
         )
     ).filter(Simpanan.id_anggota == id_anggota).scalar()
 
     total_tarik_result = db.query(
-        sqlfunc.sum(
+        func.sum(
             case(
-                (Simpanan.tipe_transaksi == TipeTransaksi.TARIK, Simpanan.nominal),
+                [(Simpanan.tipe_transaksi == TipeTransaksi.TARIK, Simpanan.nominal)],
                 else_=0
             )
         )
@@ -157,12 +157,12 @@ def get_anggota_detail(
 
     total_simpanan_result = float(total_setor_result or 0) - float(total_tarik_result or 0)
 
-    total_pinjaman_aktif_result = db.query(sqlfunc.sum(Pinjaman.sisa_pinjaman)).filter(
+    total_pinjaman_aktif_result = db.query(func.sum(Pinjaman.sisa_pinjaman)).filter(
         Pinjaman.id_anggota == id_anggota,
         Pinjaman.status == StatusPinjaman.DISETUJUI,
     ).scalar()
 
-    total_pinjaman_pending_result = db.query(sqlfunc.sum(Pinjaman.nominal_pinjaman)).filter(
+    total_pinjaman_pending_result = db.query(func.sum(Pinjaman.nominal_pinjaman)).filter(
         Pinjaman.id_anggota == id_anggota,
         Pinjaman.status == StatusPinjaman.PENDING,
     ).scalar()

@@ -60,14 +60,15 @@ def get_current_user_info(
         raise UnauthorizedException("User tidak ditemukan")
     
     anggota_data = None
-    if user.role == "anggota":
+    if user.role == "anggota" or user.role == "admin" or user.role == "super_admin":
         from app.models.anggota import Anggota
         from sqlalchemy import or_
+        
+        # Try to find member by username (no_anggota) or email
         anggota = db.query(Anggota).filter(
             or_(
-                Anggota.email == user.username,
                 Anggota.no_anggota == user.username,
-                Anggota.nama_lengkap == user.username
+                Anggota.email == user.username
             )
         ).first()
         
