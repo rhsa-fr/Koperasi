@@ -35,7 +35,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_credentials=False, # Matikan ini jika menggunakan allow_origins=["*"] untuk fix CORS Network Error
     allow_methods=["*"],
     allow_headers=["*"],
 )

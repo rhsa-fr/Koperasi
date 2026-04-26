@@ -20,9 +20,9 @@ from app.models.setting import KoperasiSetting
 
 
 def generate_no_pinjaman() -> str:
-    """Generate nomor pinjaman unik"""
+    """Generate nomor pinjaman unik (PJM-YYYYMMDD-HHMMSS-ms)"""
     now = datetime.now()
-    return f"PJM-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}"
+    return f"PJM-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}-{now.microsecond // 1000:03d}"
 
 
 def calculate_pinjaman(
