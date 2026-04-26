@@ -114,6 +114,19 @@ export function useRoleAPI() {
     []
   )
 
+  const updateRole = useCallback(
+    async (roleId: number, name: string, description: string, is_active: boolean = true): Promise<Role> => {
+      try {
+        const data = await api.put<Role>(`/roles/${roleId}`, { name, description, is_active })
+        return data
+      } catch (err: any) {
+        const detail = err?.response?.data?.detail || err?.message || 'Gagal memperbarui role'
+        throw new Error(detail)
+      }
+    },
+    []
+  )
+
   const deleteRole = useCallback(
     async (roleId: number): Promise<void> => {
       try {
@@ -209,6 +222,7 @@ export function useRoleAPI() {
     savePermissions,
     saveUserPermissions,
     createRole,
+    updateRole,
     deleteRole
   }
 }

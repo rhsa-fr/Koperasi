@@ -42,9 +42,14 @@ app.add_middleware(
 
 # Mount static files (uploads)
 import os
-if not os.path.exists(settings.UPLOAD_FOLDER):
-    os.makedirs(settings.UPLOAD_FOLDER)
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_FOLDER), name="uploads")
+upload_path = settings.UPLOAD_FOLDER
+if os.getenv("VERCEL"):
+    upload_path = "/tmp/uploads"
+
+if not os.path.exists(upload_path):
+    os.makedirs(upload_path, exist_ok=True)
+
+app.mount("/uploads", StaticFiles(directory=upload_path), name="uploads")
 
 
 # ============================================================================
