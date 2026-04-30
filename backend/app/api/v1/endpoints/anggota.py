@@ -140,7 +140,7 @@ def get_anggota_detail(
     total_setor_result = db.query(
         func.sum(
             case(
-                [(Simpanan.tipe_transaksi == TipeTransaksi.SETOR, Simpanan.nominal)],
+                (Simpanan.tipe_transaksi == TipeTransaksi.SETOR, Simpanan.nominal),
                 else_=0
             )
         )
@@ -149,7 +149,7 @@ def get_anggota_detail(
     total_tarik_result = db.query(
         func.sum(
             case(
-                [(Simpanan.tipe_transaksi == TipeTransaksi.TARIK, Simpanan.nominal)],
+                (Simpanan.tipe_transaksi == TipeTransaksi.TARIK, Simpanan.nominal),
                 else_=0
             )
         )

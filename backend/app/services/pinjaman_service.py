@@ -121,6 +121,35 @@ def create_pinjaman(
     except Exception:
         pass
     
+    # Generate Notifikasi untuk Approver
+    try:
+        from app.models.notifikasi import Notifikasi
+        from app.models.user import User
+        from app.core.permissions import get_user_effective_permissions
+        
+        # Get all users EXCEPT super_admin
+        potential_approvers = db.query(User).filter(User.role != 'super_admin').all()
+        
+        formatted_nominal = f"{float(pinjaman.nominal_pinjaman):,.0f}".replace(",", ".")
+        nama_peminjam = anggota.nama_lengkap or anggota.email or str(anggota.id_anggota)
+        
+        for user in potential_approvers:
+            perms = get_user_effective_permissions(db, user.id_user, user.role)
+            pinjaman_actions = perms.get("pinjaman", [])
+            
+            if "verify" in pinjaman_actions or "approve" in pinjaman_actions:
+                notif = Notifikasi(
+                    id_user=user.id_user,
+                    tipe='info',
+                    judul='Pengajuan Pinjaman Baru 📄',
+                    pesan=f"Anggota {nama_peminjam} mengajukan pinjaman senilai Rp {formatted_nominal} ({pinjaman.no_pinjaman}). Perlu verifikasi.",
+                    is_read=False
+                )
+                db.add(notif)
+        db.commit()
+    except Exception as e:
+        print("Gagal mengirim notif pengajuan:", e)
+    
     return pinjaman
 
 
@@ -160,11 +189,13 @@ def approve_pinjaman(
     try:
         from app.models.notifikasi import Notifikasi
         from app.models.user import User
+        from sqlalchemy import or_
         anggota = pinjaman.anggota
         user_anggota = db.query(User).filter(
-            (User.username == anggota.email) | 
-            (User.username == anggota.no_anggota) | 
-            (User.username == anggota.nama_lengkap)
+            or_(
+                User.username == anggota.no_anggota,
+                User.username == anggota.email
+            )
         ).first()
         
         if user_anggota:
@@ -206,6 +237,27 @@ def reject_pinjaman(
     
     db.commit()
     db.refresh(pinjaman)
+    
+    # Generate Notifikasi untuk Peminjam
+    try:
+        from app.models.notifikasi import Notifikasi
+        from app.models.user import User
+        anggota = pinjaman.anggota
+        user_anggota = db.query(User).filter(User.username == anggota.no_anggota).first()
+        
+        if user_anggota:
+            formatted_nominal = f"{float(pinjaman.nominal_pinjaman):,.0f}".replace(",", ".")
+            notif = Notifikasi(
+                id_user=user_anggota.id_user,
+                tipe='warning',
+                judul='Pinjaman Ditolak ❌',
+                pesan=f"Mohon maaf, pengajuan pinjaman Anda ({pinjaman.no_pinjaman}) senilai Rp {formatted_nominal} tidak dapat disetujui. Catatan: {data.catatan_persetujuan or '-'}",
+                is_read=False
+            )
+            db.add(notif)
+            db.commit()
+    except Exception as e:
+        print("Gagal mengirim notif penolakan:", e)
     
     return pinjaman
 

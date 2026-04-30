@@ -118,7 +118,7 @@ export default function Header() {
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 20000) // Poll every 20s
+    const interval = setInterval(fetchNotifications, 60000) // Poll every 1 menit
     return () => clearInterval(interval)
   }, [fetchNotifications])
 

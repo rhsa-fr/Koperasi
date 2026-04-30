@@ -9,7 +9,7 @@ import Toast, { ToastData } from '@/components/ui/Toast'
 import Avatar from '@/components/ui/Avatar'
 
 export default function AnggotaProfile({ user }: { user: any }) {
-  const { logout } = useAuth()
+  const { logout, refreshSession } = useAuth()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   
@@ -48,7 +48,12 @@ export default function AnggotaProfile({ user }: { user: any }) {
       const res = await api.get<any>('/auth/me')
       if (res.anggota) {
         const detail = await api.get<any>(`/anggota/${res.anggota.id_anggota}/detail`)
-        setProfile({ ...res.anggota, ...detail })
+        // Gabungkan data, tapi pastikan foto_profil tidak hilang jika salah satu null
+        const mergedProfile = { ...res.anggota, ...detail }
+        if (!mergedProfile.foto_profil && res.anggota.foto_profil) {
+          mergedProfile.foto_profil = res.anggota.foto_profil
+        }
+        setProfile(mergedProfile)
       }
     } catch (err) {
       console.error(err)
@@ -92,6 +97,7 @@ export default function AnggotaProfile({ user }: { user: any }) {
       })
       setToast({ type: 'success', message: 'Foto profil berhasil diperbarui!' })
       await fetchData()
+      await refreshSession()
     } catch (err: any) {
       setToast({ 
         type: 'error', 
@@ -433,6 +439,7 @@ export default function AnggotaProfile({ user }: { user: any }) {
                     })
                     
                     await fetchData()
+                    await refreshSession()
                     setIsEditing(false)
                   } catch (e) {
                     alert('Gagal menyimpan profil')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Home, Wallet, CreditCard, User, Menu, Bell, Loader2, ArrowLeft, CheckCircle2, AlertTriangle, Info, Volume2, Megaphone } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
@@ -36,7 +36,7 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
 
   
   // Real API Fetch
-  const loadNotifs = async () => {
+  const loadNotifs = useCallback(async () => {
     try {
       const res = await api.get<NotifikasiResponse[]>('/notifikasi')
       setNotifications(res || [])
@@ -44,8 +44,7 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
       console.error('Gagal memuat notifikasi:', e)
       setNotifications([])
     }
-  }
-
+  }, [])
   // Reload saat laci dibuka
   useEffect(() => {
     if (showNotifs) {
@@ -54,7 +53,7 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
       // Load diam-diam di background sekali saat aplikasi boot up
       loadNotifs()
     }
-  }, [showNotifs])
+  }, [showNotifs, loadNotifs])
 
   // Load Settings
   useEffect(() => {

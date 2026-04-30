@@ -22,6 +22,7 @@ interface AuthContextValue extends AuthState {
   logout: () => Promise<void>
   hasRole: (...roles: UserRole[]) => boolean
   can: (resource: string, action: string) => boolean
+  refreshSession: () => Promise<void>
 }
 
 // ============================================================================
@@ -44,43 +45,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true,
   })
 
+  // ── refresh session ───────────────────────────────────────────────────────
+  const refreshSession = useCallback(async () => {
+    const token = tokenStorage.getToken()
+    if (isTokenValid(token)) {
+      try {
+        const data = await authService.me()
+        const user: AuthUser = {
+          id: data.id_user,
+          username: data.username,
+          role: data.role,
+          permissions: data.permissions,
+          anggota: data.anggota
+        }
+        tokenStorage.setUser(user)
+        setState({ user, token: token!, isAuthenticated: true, isLoading: false })
+      } catch (error) {
+        console.error('Session sync failed:', error)
+        const localUser = tokenStorage.getUser()
+        if (localUser) {
+          setState({ user: localUser, token: token!, isAuthenticated: true, isLoading: false })
+        } else {
+          tokenStorage.clear()
+          setState((prev) => ({ ...prev, user: null, token: null, isAuthenticated: false, isLoading: false }))
+        }
+      }
+    } else {
+      tokenStorage.clear()
+      setState((prev) => ({ ...prev, isLoading: false }))
+    }
+  }, [])
+
   // On mount — restore session and sync with server
   useEffect(() => {
-    const initAuth = async () => {
-      const token = tokenStorage.getToken()
-      if (isTokenValid(token)) {
-        try {
-          // Sync with server to get latest permissions
-          // Method is named 'me', not 'getMe'
-          const data = await authService.me()
-          const user: AuthUser = {
-            id: data.id_user,
-            username: data.username,
-            role: data.role,
-            permissions: data.permissions,
-            anggota: data.anggota // Include linked member info
-          }
-          tokenStorage.setUser(user) // Update sync storage
-          setState({ user, token: token!, isAuthenticated: true, isLoading: false })
-        } catch (error) {
-          console.error('Session sync failed:', error)
-          // Fallback to local user if sync fails but token is still potentially valid
-          const localUser = tokenStorage.getUser()
-          if (localUser) {
-            setState({ user: localUser, token: token!, isAuthenticated: true, isLoading: false })
-          } else {
-            tokenStorage.clear()
-            setState((prev) => ({ ...prev, user: null, token: null, isAuthenticated: false, isLoading: false }))
-          }
-        }
-      } else {
-        tokenStorage.clear()
-        setState((prev) => ({ ...prev, isLoading: false }))
-      }
-    }
-
-    initAuth()
-  }, [])
+    refreshSession()
+  }, [refreshSession])
 
   // ── login ─────────────────────────────────────────────────────────────────
   const login = useCallback(async (credentials: LoginRequest) => {
@@ -124,8 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, login, logout, hasRole, can }),
-    [state, login, logout, hasRole, can]
+    () => ({ ...state, login, logout, hasRole, can, refreshSession }),
+    [state, login, logout, hasRole, can, refreshSession]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

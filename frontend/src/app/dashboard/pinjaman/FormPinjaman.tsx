@@ -458,7 +458,13 @@ export default function FormPinjaman({ onClose, onSuccess, initialAnggota, isMob
                   <input
                     type="number" min={0} max={100} step={0.5}
                     value={bunga} onChange={e => setBunga(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 text-sm border border-surface-300 rounded-xl focus:outline-none focus:border-ink-800 transition-colors"
+                    disabled={!!initialAnggota}
+                    className={cn(
+                      "w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors",
+                      !!initialAnggota 
+                        ? "bg-surface-100 border-surface-200 text-ink-500 cursor-not-allowed" 
+                        : "border-surface-300 focus:border-ink-800 bg-white"
+                    )}
                   />
                 </div>
 
@@ -485,15 +491,15 @@ export default function FormPinjaman({ onClose, onSuccess, initialAnggota, isMob
                     <Calculator className="w-4 h-4 text-ink-200" />
                     <p className="text-xs font-semibold tracking-wide">Hasil Kalkulasi Otomatis</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-wrap justify-between gap-4">
                     {[
                       { label: 'Total Bunga',    val: formatRupiah(kalkulasi.totalBunga)      },
                       { label: 'Total Pinjaman', val: formatRupiah(kalkulasi.totalPinjaman)   },
                       { label: 'Angsuran/Bulan', val: formatRupiah(kalkulasi.nominalAngsuran) },
                     ].map(item => (
-                      <div key={item.label}>
-                        <p className="text-[10px] text-ink-300 font-medium">{item.label}</p>
-                        <p className="text-sm font-bold mt-0.5">{item.val}</p>
+                      <div key={item.label} className="min-w-[100px]">
+                        <p className="text-[10px] text-ink-300 font-medium whitespace-nowrap">{item.label}</p>
+                        <p className="text-sm font-bold mt-0.5 whitespace-nowrap">{item.val}</p>
                       </div>
                     ))}
                   </div>

@@ -52,11 +52,7 @@ def run_cron():
 
                 # Cari User akun dari anggota ini
                 anggota = ang.pinjaman.anggota
-                user_anggota = db.query(User).filter(
-                    (User.username == anggota.email) | 
-                    (User.username == anggota.no_anggota) | 
-                    (User.username == anggota.nama_lengkap)
-                ).first()
+                user_anggota = db.query(User).filter(User.username == anggota.no_anggota).first()
                 
                 if user_anggota:
                     # Anti-Spam Check: Jangan kirim notif yang sama pada hari yang sama

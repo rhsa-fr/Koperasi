@@ -73,7 +73,7 @@ def get_dashboard_summary(
     # 6. Recent Lists
     recent_simpanan = db.query(Simpanan, Anggota.nama_lengkap).join(Anggota).order_by(Simpanan.created_at.desc()).limit(5).all()
     recent_pinjaman = db.query(Pinjaman, Anggota.nama_lengkap).join(Anggota).order_by(Pinjaman.created_at.desc()).limit(5).all()
-    recent_angsuran = db.query(Angsuran, Anggota.nama_lengkap, Pinjaman.no_pinjaman).join(Anggota).join(Pinjaman).filter(Angsuran.status == 'belum_bayar').order_by(Angsuran.tanggal_jatuh_tempo.asc()).limit(5).all()
+    recent_angsuran = db.query(Angsuran, Anggota.nama_lengkap, Pinjaman.no_pinjaman).select_from(Angsuran).join(Pinjaman, Angsuran.id_pinjaman == Pinjaman.id_pinjaman).join(Anggota, Pinjaman.id_anggota == Anggota.id_anggota).filter(Angsuran.status == 'belum_bayar').order_by(Angsuran.tanggal_jatuh_tempo.asc()).limit(5).all()
     
     return DashboardSummaryResponse(
         stats=DashboardStats(

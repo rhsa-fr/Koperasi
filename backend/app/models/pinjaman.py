@@ -66,3 +66,7 @@ class Pinjaman(Base):
 
     def __repr__(self):
         return f"<Pinjaman(id={self.id_pinjaman}, no={self.no_pinjaman}, status={self.status})>"
+
+    @property
+    def nama_anggota(self):
+        return self.anggota.nama_lengkap if self.anggota else None

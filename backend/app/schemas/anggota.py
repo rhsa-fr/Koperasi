@@ -43,6 +43,7 @@ class AnggotaInDB(AnggotaBase):
     id_anggota: int
     no_anggota: str
     status: StatusAnggota
+    foto_profil: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -57,6 +58,7 @@ class AnggotaResponse(BaseModel):
     no_telepon: Optional[str] = None
     tanggal_bergabung: date
     status: StatusAnggota
+    foto_profil: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -73,7 +75,7 @@ class ProfilAnggotaBase(BaseModel):
     provinsi: Optional[str] = Field(None, max_length=50, description="Provinsi")
     kode_pos: Optional[str] = Field(None, max_length=10, description="Kode pos")
     pekerjaan: Optional[str] = Field(None, max_length=50, description="Pekerjaan")
-    foto_profil: Optional[str] = Field(None, max_length=255, description="Path foto profil")
+    foto_profil: Optional[str] = Field(None, description="Path foto profil atau data Base64")
 
     # ── FIX: konversi string kosong "" → None sebelum validasi enum ──────────
     # Bekerja untuk input dari frontend DAN saat model_validate dari DB object
