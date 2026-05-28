@@ -120,6 +120,101 @@ def seed_all():
         else:
             print("[INFO] Superadmin user already exists.")
 
+        print("--- Step 5: Seeding Master Syarat Peminjaman ---")
+        from app.models.syarat_peminjaman import SyaratPeminjaman
+        
+        MASTER_SYARAT = [
+            {
+                "kode_syarat": "SYR001",
+                "nama_syarat": "Fotocopy KTP",
+                "deskripsi": "Fotocopy KTP anggota yang masih berlaku",
+                "is_wajib": True,
+                "min_nominal_pinjaman": None,
+                "dokumen_diperlukan": "KTP",
+                "urutan": 10
+            },
+            {
+                "kode_syarat": "SYR002",
+                "nama_syarat": "Fotocopy KK",
+                "deskripsi": "Fotocopy Kartu Keluarga",
+                "is_wajib": True,
+                "min_nominal_pinjaman": None,
+                "dokumen_diperlukan": "KK",
+                "urutan": 20
+            },
+            {
+                "kode_syarat": "SYR005",
+                "nama_syarat": "Surat Pernyataan",
+                "deskripsi": "Surat pernyataan sanggup membayar angsuran",
+                "is_wajib": True,
+                "min_nominal_pinjaman": None,
+                "dokumen_diperlukan": "Surat Pernyataan",
+                "urutan": 30
+            },
+            {
+                "kode_syarat": "SYR006",
+                "nama_syarat": "Pas Foto 4x6",
+                "deskripsi": "Pas foto terbaru ukuran 4x6",
+                "is_wajib": False,
+                "min_nominal_pinjaman": None,
+                "dokumen_diperlukan": "Pas Foto",
+                "urutan": 40
+            },
+            {
+                "kode_syarat": "SYR003",
+                "nama_syarat": "Slip Gaji",
+                "deskripsi": "Slip gaji 3 bulan terakhir",
+                "is_wajib": True,
+                "min_nominal_pinjaman": 5000000.0,
+                "dokumen_diperlukan": "Slip Gaji",
+                "urutan": 50
+            },
+            {
+                "kode_syarat": "SYR004",
+                "nama_syarat": "Jaminan BPKB",
+                "deskripsi": "BPKB kendaraan sebagai jaminan",
+                "is_wajib": True,
+                "min_nominal_pinjaman": 10000000.0,
+                "dokumen_diperlukan": "BPKB",
+                "urutan": 60
+            },
+            {
+                "kode_syarat": "SYR007",
+                "nama_syarat": "NPWP",
+                "deskripsi": "Nomor Pokok Wajib Pajak",
+                "is_wajib": False,
+                "min_nominal_pinjaman": 20000000.0,
+                "dokumen_diperlukan": "NPWP",
+                "urutan": 70
+            },
+            {
+                "kode_syarat": "SYR008",
+                "nama_syarat": "Sertifikat Rumah",
+                "deskripsi": "Sertifikat rumah sebagai jaminan tambahan",
+                "is_wajib": False,
+                "min_nominal_pinjaman": 50000000.0,
+                "dokumen_diperlukan": "Sertifikat",
+                "urutan": 80
+            }
+        ]
+
+        for s_data in MASTER_SYARAT:
+            existing_syarat = db.query(SyaratPeminjaman).filter(SyaratPeminjaman.kode_syarat == s_data["kode_syarat"]).first()
+            if not existing_syarat:
+                new_s = SyaratPeminjaman(
+                    kode_syarat=s_data["kode_syarat"],
+                    nama_syarat=s_data["nama_syarat"],
+                    deskripsi=s_data["deskripsi"],
+                    is_wajib=s_data["is_wajib"],
+                    min_nominal_pinjaman=s_data["min_nominal_pinjaman"],
+                    dokumen_diperlukan=s_data["dokumen_diperlukan"],
+                    urutan=s_data["urutan"],
+                    is_active=True
+                )
+                db.add(new_s)
+        db.commit()
+        print("[OK] Master Syarat Peminjaman seeded.")
+
     except Exception as e:
         print(f"Error during seeding: {e}")
         db.rollback()
