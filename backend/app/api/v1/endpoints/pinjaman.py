@@ -9,7 +9,8 @@ from datetime import date
 from app.database import get_db
 from app.schemas.pinjaman import (
     PinjamanCreate, PinjamanUpdate, PinjamanResponse, PinjamanDetailResponse,
-    PinjamanApprove, PinjamanReject, PinjamanCalculation
+    PinjamanApprove, PinjamanReject, PinjamanReturn, PinjamanCalculation,
+    PinjamanHistoryResponse
 )
 from app.schemas.common import PaginatedResponse, PaginationMeta
 from app.core.permissions import get_current_user, require_permission
@@ -18,6 +19,49 @@ from app.core.upload import save_uploaded_file
 from app.schemas.syarat_peminjaman import PinjamanSyaratResponse, PinjamanSyaratUpdate
 
 router = APIRouter()
+
+
+def serialize_pinjaman(
+    pinjaman,
+    include_history: bool = False
+) -> dict:
+    history = None
+    if include_history and getattr(pinjaman, 'history', None) is not None:
+        history = []
+        for item in sorted(pinjaman.history, key=lambda x: x.created_at):
+            history.append(PinjamanHistoryResponse(
+                id_history=item.id_history,
+                id_pinjaman=item.id_pinjaman,
+                id_user=item.id_user,
+                username=item.user.username if item.user else None,
+                role=item.user.role if item.user else None,
+                status=item.status,
+                catatan=item.catatan,
+                created_at=item.created_at
+            ))
+
+    return {
+        "id_pinjaman": pinjaman.id_pinjaman,
+        "id_anggota": pinjaman.id_anggota,
+        "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
+        "no_pinjaman": pinjaman.no_pinjaman,
+        "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
+        "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
+        "bunga_persen": float(pinjaman.bunga_persen),
+        "total_bunga": float(pinjaman.total_bunga),
+        "total_pinjaman": float(pinjaman.total_pinjaman),
+        "lama_angsuran": pinjaman.lama_angsuran,
+        "nominal_angsuran": float(pinjaman.nominal_angsuran),
+        "keperluan": pinjaman.keperluan,
+        "status": pinjaman.status,
+        "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
+        "tanggal_pencairan": pinjaman.tanggal_pencairan,
+        "tanggal_lunas": pinjaman.tanggal_lunas,
+        "catatan_persetujuan": pinjaman.catatan_persetujuan,
+        "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
+        "created_at": pinjaman.created_at,
+        "history": history,
+    }
 
 
 @router.get("", response_model=PaginatedResponse[PinjamanResponse])
@@ -47,7 +91,7 @@ def get_pinjaman_list(
     page = (skip // limit) + 1 if limit > 0 else 1
     total_pages = (total + limit - 1) // limit if limit > 0 else 1
     
-    data = [PinjamanResponse.model_validate(p) for p in pinjaman_list]
+    data = [PinjamanResponse.model_validate(serialize_pinjaman(p, include_history=True)) for p in pinjaman_list]
     
     return PaginatedResponse(
         data=data,
@@ -77,12 +121,12 @@ def create_pinjaman(
         
         # Use model_validate for cleaner and safer response
         # It will automatically handle Decimal to float conversion
-        return PinjamanResponse.model_validate(pinjaman)
+        return PinjamanResponse.model_validate(serialize_pinjaman(pinjaman, include_history=True))
         
     except Exception as e:
         import traceback
         print("\n" + "!"*60)
-        print("❌ CRITICAL ERROR IN CREATE_PINJAMAN")
+        print("CRITICAL ERROR IN CREATE_PINJAMAN")
         traceback.print_exc()
         print("!"*60 + "\n")
         
@@ -145,7 +189,7 @@ def calculate_pinjaman(
 
 
 # ─── Dynamic routes with path parameter ───────────────────────────────────────
-@router.get("/{id_pinjaman}", response_model=PinjamanResponse)
+@router.get("/{id_pinjaman}", response_model=PinjamanDetailResponse)
 def get_pinjaman(
     id_pinjaman: int,
     current_user: dict = Depends(get_current_user),
@@ -154,29 +198,21 @@ def get_pinjaman(
     """Get pinjaman by ID"""
     pinjaman = pinjaman_service.get_pinjaman_by_id(db, id_pinjaman)
     
-    response_data = {
-        "id_pinjaman": pinjaman.id_pinjaman,
-        "id_anggota": pinjaman.id_anggota,
-        "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
-        "no_pinjaman": pinjaman.no_pinjaman,
-        "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
-        "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
-        "bunga_persen": float(pinjaman.bunga_persen),
-        "total_bunga": float(pinjaman.total_bunga),
-        "total_pinjaman": float(pinjaman.total_pinjaman),
-        "lama_angsuran": pinjaman.lama_angsuran,
-        "nominal_angsuran": float(pinjaman.nominal_angsuran),
-        "keperluan": pinjaman.keperluan,
-        "status": pinjaman.status,
-        "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
-        "tanggal_pencairan": pinjaman.tanggal_pencairan,
-        "tanggal_lunas": pinjaman.tanggal_lunas,
-        "catatan_persetujuan": pinjaman.catatan_persetujuan,
-        "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
-        "created_at": pinjaman.created_at
-    }
-    
-    return PinjamanResponse(**response_data)
+    return PinjamanDetailResponse.model_validate(
+        serialize_pinjaman(pinjaman, include_history=True)
+    )
+
+
+@router.get("/{id_pinjaman}/history", response_model=List[PinjamanHistoryResponse])
+def get_pinjaman_history(
+    id_pinjaman: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get full history of a pinjaman"""
+    pinjaman = pinjaman_service.get_pinjaman_by_id(db, id_pinjaman)
+    history = sorted(pinjaman.history or [], key=lambda x: x.created_at)
+    return [PinjamanHistoryResponse.model_validate(item) for item in history]
 
 
 @router.put("/{id_pinjaman}", response_model=PinjamanResponse)
@@ -186,32 +222,15 @@ def update_pinjaman(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update pinjaman (hanya yang masih pending)"""
-    pinjaman = pinjaman_service.update_pinjaman(db, id_pinjaman, data)
+    """Update pinjaman (hanya yang masih pending atau dikembalikan)"""
+    pinjaman = pinjaman_service.update_pinjaman(
+        db=db,
+        id_pinjaman=id_pinjaman,
+        data=data,
+        id_user=current_user["id"]
+    )
     
-    response_data = {
-        "id_pinjaman": pinjaman.id_pinjaman,
-        "id_anggota": pinjaman.id_anggota,
-        "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
-        "no_pinjaman": pinjaman.no_pinjaman,
-        "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
-        "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
-        "bunga_persen": float(pinjaman.bunga_persen),
-        "total_bunga": float(pinjaman.total_bunga),
-        "total_pinjaman": float(pinjaman.total_pinjaman),
-        "lama_angsuran": pinjaman.lama_angsuran,
-        "nominal_angsuran": float(pinjaman.nominal_angsuran),
-        "keperluan": pinjaman.keperluan,
-        "status": pinjaman.status,
-        "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
-        "tanggal_pencairan": pinjaman.tanggal_pencairan,
-        "tanggal_lunas": pinjaman.tanggal_lunas,
-        "catatan_persetujuan": pinjaman.catatan_persetujuan,
-        "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
-        "created_at": pinjaman.created_at
-    }
-    
-    return PinjamanResponse(**response_data)
+    return PinjamanResponse.model_validate(serialize_pinjaman(pinjaman, include_history=True))
 
 
 @router.put("/{id_pinjaman}/approve", response_model=PinjamanResponse)
@@ -229,29 +248,7 @@ def approve_pinjaman(
         id_user=current_user["id"]
     )
     
-    response_data = {
-        "id_pinjaman": pinjaman.id_pinjaman,
-        "id_anggota": pinjaman.id_anggota,
-        "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
-        "no_pinjaman": pinjaman.no_pinjaman,
-        "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
-        "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
-        "bunga_persen": float(pinjaman.bunga_persen),
-        "total_bunga": float(pinjaman.total_bunga),
-        "total_pinjaman": float(pinjaman.total_pinjaman),
-        "lama_angsuran": pinjaman.lama_angsuran,
-        "nominal_angsuran": float(pinjaman.nominal_angsuran),
-        "keperluan": pinjaman.keperluan,
-        "status": pinjaman.status,
-        "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
-        "tanggal_pencairan": pinjaman.tanggal_pencairan,
-        "tanggal_lunas": pinjaman.tanggal_lunas,
-        "catatan_persetujuan": pinjaman.catatan_persetujuan,
-        "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
-        "created_at": pinjaman.created_at
-    }
-    
-    return PinjamanResponse(**response_data)
+    return PinjamanResponse.model_validate(serialize_pinjaman(pinjaman, include_history=True))
 
 
 @router.put("/{id_pinjaman}/reject", response_model=PinjamanResponse)
@@ -269,29 +266,25 @@ def reject_pinjaman(
         id_user=current_user["id"]
     )
     
-    response_data = {
-        "id_pinjaman": pinjaman.id_pinjaman,
-        "id_anggota": pinjaman.id_anggota,
-        "nama_anggota": pinjaman.anggota.nama_lengkap if pinjaman.anggota else None,
-        "no_pinjaman": pinjaman.no_pinjaman,
-        "tanggal_pengajuan": pinjaman.tanggal_pengajuan,
-        "nominal_pinjaman": float(pinjaman.nominal_pinjaman),
-        "bunga_persen": float(pinjaman.bunga_persen),
-        "total_bunga": float(pinjaman.total_bunga),
-        "total_pinjaman": float(pinjaman.total_pinjaman),
-        "lama_angsuran": pinjaman.lama_angsuran,
-        "nominal_angsuran": float(pinjaman.nominal_angsuran),
-        "keperluan": pinjaman.keperluan,
-        "status": pinjaman.status,
-        "tanggal_persetujuan": pinjaman.tanggal_persetujuan,
-        "tanggal_pencairan": pinjaman.tanggal_pencairan,
-        "tanggal_lunas": pinjaman.tanggal_lunas,
-        "catatan_persetujuan": pinjaman.catatan_persetujuan,
-        "sisa_pinjaman": float(pinjaman.sisa_pinjaman),
-        "created_at": pinjaman.created_at
-    }
+    return PinjamanResponse.model_validate(serialize_pinjaman(pinjaman, include_history=True))
+@router.put("/{id_pinjaman}/return", response_model=PinjamanResponse)
+def return_pinjaman(
+    id_pinjaman: int,
+    data: PinjamanReturn,
+    current_user: dict = Depends(require_permission("pinjaman", "verify")),
+    db: Session = Depends(get_db)
+):
+    """Return pinjaman for revision"""
+    pinjaman = pinjaman_service.return_pinjaman(
+        db=db,
+        id_pinjaman=id_pinjaman,
+        data=data,
+        id_user=current_user["id"]
+    )
     
-    return PinjamanResponse(**response_data)
+    return PinjamanResponse.model_validate(serialize_pinjaman(pinjaman, include_history=True))
+
+
 @router.post("/syarat/{id_pinjaman_syarat}/upload", response_model=PinjamanSyaratResponse)
 async def upload_pinjaman_syarat(
     id_pinjaman_syarat: int,

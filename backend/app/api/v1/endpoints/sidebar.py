@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.sidebar import MasterSidebar
+from app.models.role import MasterMenu
 from app.schemas.sidebar import SidebarCreate, SidebarUpdate, SidebarResponse
 from app.core.permissions import get_current_user, require_permission, log_audit_action
 
@@ -144,7 +145,14 @@ def get_all_menus(
     db: Session = Depends(get_db)
 ):
     """Get all sidebar menus for management (Superadmin only)"""
-    return db.query(MasterSidebar).order_by(MasterSidebar.order_weight.asc()).all()
+    menus = db.query(MasterSidebar).order_by(MasterSidebar.order_weight.asc()).all()
+    
+    # Fetch actions for each menu
+    for menu in menus:
+        actions = db.query(MasterMenu.action).filter(MasterMenu.menu == menu.resource).all()
+        menu.actions = [a[0] for a in actions]
+        
+    return menus
 
 @router.post("", response_model=SidebarResponse)
 def create_menu(
@@ -153,10 +161,19 @@ def create_menu(
     db: Session = Depends(get_db)
 ):
     """Add new menu (Superadmin only)"""
-    menu = MasterSidebar(**data.dict())
+    menu_data = data.dict(exclude={"actions"})
+    menu = MasterSidebar(**menu_data)
     db.add(menu)
+    
+    # Process actions
+    if data.actions:
+        for action in data.actions:
+            db.add(MasterMenu(menu=menu.resource, action=action))
+            
     db.commit()
     db.refresh(menu)
+    
+    menu.actions = data.actions or []
 
     # Log audit
     log_audit_action(
@@ -183,12 +200,27 @@ def update_menu(
     if not menu:
         raise HTTPException(status_code=404, detail="Menu tidak ditemukan")
     
-    update_data = data.dict(exclude_unset=True)
+    old_resource = menu.resource
+    update_data = data.dict(exclude_unset=True, exclude={"actions"})
     for key, value in update_data.items():
         setattr(menu, key, value)
+        
+    new_resource = menu.resource
+    
+    if data.actions is not None:
+        # Re-create actions
+        db.query(MasterMenu).filter(MasterMenu.menu == old_resource).delete()
+        for action in data.actions:
+            db.add(MasterMenu(menu=new_resource, action=action))
+    elif old_resource != new_resource:
+        # Just update resource name
+        db.query(MasterMenu).filter(MasterMenu.menu == old_resource).update({"menu": new_resource})
     
     db.commit()
     db.refresh(menu)
+    
+    actions = db.query(MasterMenu.action).filter(MasterMenu.menu == menu.resource).all()
+    menu.actions = [a[0] for a in actions]
 
     # Log audit
     log_audit_action(
@@ -214,7 +246,9 @@ def delete_menu(
     if not menu:
         raise HTTPException(status_code=404, detail="Menu tidak ditemukan")
     
+    resource = menu.resource
     db.delete(menu)
+    db.query(MasterMenu).filter(MasterMenu.menu == resource).delete()
     db.commit()
 
     # Log audit

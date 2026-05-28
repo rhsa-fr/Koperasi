@@ -9,6 +9,7 @@ import PermissionMatrixWrapper from '@/components/roles/PermissionMatrix'
 import { useRolesState } from '@/hooks/useRolesState'
 import { useRoleAPI } from '@/hooks/useRoleAPI'
 import { usePermissions } from '@/hooks/usePermissions'
+import { api } from '@/lib/axios'
 
 // ============================================================================
 // Constants
@@ -38,10 +39,15 @@ export default function RolesManagementPage() {
   const [isUpdatingRole, setIsUpdatingRole] = useState(false)
   const [isDeletingRole, setIsDeletingRole] = useState(false)
 
+  // Local state for tracking active sidebar resources for selected role
+  const [activeSidebarResources, setActiveSidebarResources] = useState<string[]>([])
+  const [isSidebarLoading, setIsSidebarLoading] = useState(false)
+
   const rolesState = useRolesState()
   const { 
     fetchRoles, 
     fetchMenus, 
+    fetchSidebar,
     fetchRolePermissions, 
     savePermissions, 
     createRole,
@@ -71,28 +77,72 @@ export default function RolesManagementPage() {
     setError,
     activeTab,
     setActiveTab,
+    sidebarLabels,
+    setSidebarLabels,
     isReadOnly
   } = rolesState
 
-  // Get visible modules based on role
-  const visibleModules = MODULES.filter(m => {
+  // 1. Derive modules from fetched menus
+  const allModules = Array.from(new Set(menus.map(m => m.menu)))
+
+  // 2. Filter modules based on role (some are system/admin only)
+  const visibleModules = allModules.filter(m => {
     if (selectedRoleId !== 1) {
-      return !ADMIN_ONLY_RESOURCES.includes(m)
+      // Must be active/enabled in the role's sidebar, and not an admin-only resource
+      const isInSidebar = activeSidebarResources.includes(m)
+      return isInSidebar && !ADMIN_ONLY_RESOURCES.includes(m)
     }
     return true
   })
 
+  // 3. Merge static labels with dynamic labels from database
+  const mergedModuleLabels = { ...MODULE_LABELS, ...sidebarLabels }
+
   const hasInitializedTab = useRef(false)
+
+  // Fetch active sidebar resources whenever selectedRoleId changes
+  useEffect(() => {
+    if (selectedRoleId) {
+      const fetchRoleSidebar = async () => {
+        setIsSidebarLoading(true)
+        try {
+          const response = await api.get<any[]>(`/sidebar?role_id=${selectedRoleId}`)
+          const resources = response.map(item => item.resource)
+          setActiveSidebarResources(resources)
+        } catch (err) {
+          console.error('Gagal memuat visibilitas sidebar role:', err)
+          setActiveSidebarResources([])
+        } finally {
+          setIsSidebarLoading(false)
+        }
+      }
+      fetchRoleSidebar()
+    } else {
+      setActiveSidebarResources([])
+    }
+  }, [selectedRoleId])
 
   // 1. Fetch Basic Data
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [rolesData, menusData] = await Promise.all([fetchRoles(), fetchMenus()])
+      const [rolesData, menusData, sidebarData] = await Promise.all([
+        fetchRoles(), 
+        fetchMenus(),
+        fetchSidebar()
+      ])
       setRoles(rolesData)
       setMenus(menusData)
-      if (rolesData.length > 0) {
+      
+      // Build label mapping from master sidebar
+      const labels: Record<string, string> = {}
+      sidebarData.forEach(item => {
+        labels[item.resource] = item.label
+      })
+      setSidebarLabels(labels)
+
+      if (rolesData.length > 0 && !selectedRoleId) {
         setSelectedRoleId(rolesData[0].id_role)
       }
     } catch (err) {
@@ -100,7 +150,7 @@ export default function RolesManagementPage() {
     } finally {
       setLoading(false)
     }
-  }, [fetchRoles, fetchMenus, setRoles, setMenus, setSelectedRoleId, setLoading, setError])
+  }, [fetchRoles, fetchMenus, fetchSidebar, setRoles, setMenus, setSidebarLabels, setSelectedRoleId, selectedRoleId, setLoading, setError])
 
   useEffect(() => {
     fetchData()
@@ -123,13 +173,14 @@ export default function RolesManagementPage() {
     }
   }, [selectedRoleId, menus, fetchRolePermissions, setMatrix, setMatrixLoading, setError])
 
-  // 3. Initialize active tab only once when visibleModules first has items
+  // 3. Synchronize and re-initialize active tab based on visibleModules
   useEffect(() => {
-    if (visibleModules.length > 0 && !hasInitializedTab.current) {
-      hasInitializedTab.current = true
-      setActiveTab(visibleModules[0])
+    if (visibleModules.length > 0) {
+      if (!activeTab || !visibleModules.includes(activeTab)) {
+        setActiveTab(visibleModules[0])
+      }
     }
-  }, [visibleModules, setActiveTab])
+  }, [visibleModules, activeTab, setActiveTab])
 
   const handleTogglePermission = (module: string, action: string) => {
     togglePermission(matrix, module, action, setMatrix)
@@ -271,7 +322,7 @@ export default function RolesManagementPage() {
           <PermissionMatrixWrapper
             modules={visibleModules}
             matrix={matrix}
-            moduleLabels={MODULE_LABELS}
+            moduleLabels={mergedModuleLabels}
             actionLabels={ACTION_LABELS}
             activeTab={activeTab}
             matrixLoading={matrixLoading}

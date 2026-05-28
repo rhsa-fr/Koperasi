@@ -2,7 +2,18 @@
 // Pinjaman Types — sesuai backend schema
 // ============================================================================
 
-export type StatusPinjaman = 'pending' | 'disetujui' | 'ditolak' | 'lunas' 
+export type StatusPinjaman = 'pending' | 'disetujui' | 'ditolak' | 'lunas' | 'dikembalikan' 
+
+export interface PinjamanHistory {
+  id_history: number
+  id_pinjaman: number
+  id_user?: number
+  username?: string
+  role?: string
+  status: StatusPinjaman
+  catatan?: string
+  created_at: string
+}
 
 export interface Pinjaman {
   id_pinjaman: number
@@ -25,6 +36,7 @@ export interface Pinjaman {
   sisa_pinjaman: number
   total_syarat?: number
   syarat_terpenuhi?: number
+  history?: PinjamanHistory[]
   created_at: string
 }
 
@@ -127,6 +139,7 @@ export const STATUS_CONFIG: Record<StatusPinjaman, { label: string; bg: string; 
   disetujui: { label: 'Disetujui', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   ditolak:   { label: 'Ditolak',   bg: 'bg-red-50',     text: 'text-red-600',     dot: 'bg-red-500' },
   lunas:     { label: 'Lunas',     bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-500' },
+  dikembalikan: { label: 'Revisi', bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-500' },
 }
 
 export function formatRupiah(n: number): string {

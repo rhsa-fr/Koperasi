@@ -14,6 +14,7 @@ class StatusPinjaman(str, enum.Enum):
     DISETUJUI = "disetujui"
     DITOLAK   = "ditolak"
     LUNAS     = "lunas"
+    DIKEMBALIKAN = "dikembalikan"
 
 
 class Pinjaman(Base):
@@ -32,10 +33,11 @@ class Pinjaman(Base):
     nominal_angsuran     = Column(DECIMAL(15, 2), nullable=False)
     keperluan            = Column(Text)
 
-    # FIX: values_callable
+    # Menggunakan String(20) daripada Enum(StatusPinjaman) untuk menghindari isu mapping SQLAlchemy
     status = Column(
-        Enum(StatusPinjaman, values_callable=lambda obj: [e.value for e in obj]),
-        default=StatusPinjaman.PENDING, index=True,
+        String(20),
+        default=StatusPinjaman.PENDING.value,
+        index=True,
     )
 
     tanggal_persetujuan  = Column(Date, index=True)
@@ -62,6 +64,8 @@ class Pinjaman(Base):
     angsuran           = relationship("Angsuran", back_populates="pinjaman",
                                       cascade="all, delete-orphan")
     pinjaman_syarat    = relationship("PinjamanSyarat", back_populates="pinjaman",
+                                      cascade="all, delete-orphan")
+    history            = relationship("PinjamanHistory", back_populates="pinjaman",
                                       cascade="all, delete-orphan")
 
     def __repr__(self):

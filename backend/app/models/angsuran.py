@@ -34,10 +34,11 @@ class Angsuran(Base):
     total_bayar        = Column(DECIMAL(15, 2), default=0)
     tanggal_bayar      = Column(Date, index=True)
 
-    # FIX: values_callable
+    # Menggunakan String(20) untuk menghindari isu mapping Enum SQLAlchemy
     status = Column(
-        Enum(StatusAngsuran, values_callable=lambda obj: [e.value for e in obj]),
-        default=StatusAngsuran.BELUM_BAYAR, index=True,
+        String(20),
+        default=StatusAngsuran.BELUM_BAYAR.value,
+        index=True,
     )
 
     keterangan = Column(Text)

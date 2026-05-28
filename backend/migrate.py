@@ -16,6 +16,7 @@ from app.models import (
     angsuran,
     syarat_peminjaman,
     pinjaman_syarat,
+    pinjaman_history,
     setting,
 )
 

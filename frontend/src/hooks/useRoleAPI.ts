@@ -45,6 +45,16 @@ export function useRoleAPI() {
     }
   }, [])
 
+  const fetchSidebar = useCallback(async (): Promise<any[]> => {
+    try {
+      const data = await api.get<any[]>('/sidebar/manage')
+      return data
+    } catch (err) {
+      console.warn('Failed to fetch sidebar for labels:', err)
+      return []
+    }
+  }, [])
+
   const fetchRolePermissions = useCallback(
     async (roleId: number, menus: Menu[]): Promise<PermissionMatrix> => {
       if (menus.length === 0) return {}
@@ -217,6 +227,7 @@ export function useRoleAPI() {
   return {
     fetchRoles,
     fetchMenus,
+    fetchSidebar,
     fetchRolePermissions,
     fetchUserPermissions,
     savePermissions,

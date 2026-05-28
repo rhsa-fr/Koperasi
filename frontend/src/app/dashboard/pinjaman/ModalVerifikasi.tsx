@@ -5,10 +5,11 @@ import {
   X, CheckCircle2, XCircle, Loader2,
   Calendar, FileText, ShieldCheck, ShieldX,
   Wallet, CreditCard, ArrowDownCircle, ArrowUpCircle,
-  AlertCircle, ExternalLink,
+  AlertCircle, ExternalLink, Clock, ChevronDown, Eye
 } from 'lucide-react'
 import { Pinjaman, PinjamanApprovePayload, PinjamanRejectPayload, formatRupiah } from './types'
-import { cn, getFileUrl, isImage, isPdf } from '@/lib/utils'
+import { cn, getFileUrl, isImage, isPdf, openSafeFile, base64ToBlobUrl } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 import { api } from '@/lib/axios'
 
@@ -86,7 +87,8 @@ interface Props {
 // ============================================================================
 
 export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props) {
-  const [mode, setMode] = useState<'idle' | 'setuju' | 'tolak'>('idle')
+  const { can } = useAuth()
+  const [mode, setMode] = useState<'idle' | 'setuju' | 'tolak' | 'kembalikan'>('idle')
   const [catatan, setCatatan] = useState('')
   const [tanggalPersetujuan, setTanggalPersetujuan] = useState(
     new Date().toISOString().split('T')[0]
@@ -253,6 +255,25 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
     }
   }
 
+  // ── Return ─────────────────────────────────────────────────────────────────
+  const handleReturn = async () => {
+    if (!catatan.trim()) { setError('Catatan revisi wajib diisi'); return }
+    setError(null)
+    setLoading(true)
+    try {
+      const payload: PinjamanRejectPayload = { catatan_persetujuan: catatan }
+      const result = await api.put<Pinjaman>(
+        `/pinjaman/${pinjaman.id_pinjaman}/return`,
+        payload
+      )
+      onSuccess(result)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Gagal mengembalikan pinjaman')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const persen = checklist ? Math.round(checklist.persentase_kelengkapan) : 0
 
   return (
@@ -376,6 +397,152 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                   )}
                 </div>
 
+                {/* Riwayat Catatan & Revisi Pengajuan Ini */}
+                {pinjaman.history && pinjaman.history.length > 0 && (
+                  <div className="p-4 rounded-xl bg-surface-50 border border-surface-200 space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-ink-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-indigo-600" /> Riwayat Catatan
+                    </h3>
+                    
+                    {(() => {
+                      const sortedHistory = [...pinjaman.history].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                      const lastEntry = sortedHistory[sortedHistory.length - 1]
+                      const olderEntries = sortedHistory.slice(0, -1)
+                      
+                      return (
+                        <div className="space-y-3">
+                          {/* Catatan Terakhir - Prominent Message Bubble */}
+                          {lastEntry && (
+                            <div className={cn(
+                              "relative p-5 rounded-2xl border border-surface-200/80 shadow-lg shadow-surface-300/20 bg-white transition-all duration-300 hover:shadow-xl hover:shadow-surface-300/30 flex gap-4 overflow-hidden",
+                              lastEntry.status === 'dikembalikan' ? "border-l-4 border-l-red-500" :
+                              lastEntry.status === 'disetujui' || lastEntry.status === 'lunas' ? "border-l-4 border-l-emerald-500" :
+                              lastEntry.status === 'ditolak' ? "border-l-4 border-l-rose-500" :
+                              "border-l-4 border-l-amber-500"
+                            )}>
+                              {/* Background Glow Effect */}
+                              <div className={cn(
+                                "absolute inset-0 opacity-[0.03] pointer-events-none",
+                                lastEntry.status === 'dikembalikan' ? "bg-red-500" :
+                                lastEntry.status === 'disetujui' || lastEntry.status === 'lunas' ? "bg-emerald-500" :
+                                lastEntry.status === 'ditolak' ? "bg-rose-500" :
+                                "bg-amber-500"
+                              )} />
+
+                              {/* Avatar */}
+                              <div className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-md",
+                                lastEntry.status === 'dikembalikan' ? "bg-gradient-to-br from-red-500 to-rose-600" :
+                                lastEntry.status === 'disetujui' || lastEntry.status === 'lunas' ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
+                                lastEntry.status === 'ditolak' ? "bg-gradient-to-br from-rose-500 to-pink-600" :
+                                "bg-gradient-to-br from-amber-500 to-yellow-600"
+                              )}>
+                                {lastEntry.username ? lastEntry.username.slice(0, 2).toUpperCase() : 'US'}
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-ink-800 tracking-tight">{lastEntry.username || 'System'}</span>
+                                    <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-surface-100 text-ink-400 border border-surface-200">
+                                      {lastEntry.role || 'user'}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-medium text-ink-400">
+                                    {new Date(lastEntry.created_at).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short' })} • {new Date(lastEntry.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}
+                                  </span>
+                                </div>
+
+                                {/* Message text bubble */}
+                                <div className={cn(
+                                  "p-3 rounded-2xl text-xs leading-relaxed font-semibold relative after:absolute after:top-3 after:-left-2 after:w-0 after:h-0 after:border-t-8 after:border-t-transparent after:border-b-8 after:border-b-transparent",
+                                  lastEntry.status === 'dikembalikan' ? "bg-red-50/60 text-red-950 border border-red-100 after:border-r-8 after:border-r-red-50/60" :
+                                  lastEntry.status === 'disetujui' || lastEntry.status === 'lunas' ? "bg-emerald-50/60 text-emerald-950 border border-emerald-100 after:border-r-8 after:border-r-emerald-50/60" :
+                                  lastEntry.status === 'ditolak' ? "bg-rose-50/60 text-rose-950 border border-rose-100 after:border-r-8 after:border-r-rose-50/60" :
+                                  "bg-amber-50/60 text-amber-950 border border-amber-100 after:border-r-8 after:border-r-amber-50/60"
+                                )}>
+                                  {/* Status indicator bubble inside */}
+                                  <div className="mb-1.5 flex items-center gap-1.5">
+                                    <span className={cn(
+                                      "w-1.5 h-1.5 rounded-full animate-pulse",
+                                      lastEntry.status === 'dikembalikan' ? "bg-red-500" :
+                                      lastEntry.status === 'disetujui' || lastEntry.status === 'lunas' ? "bg-emerald-500" :
+                                      lastEntry.status === 'ditolak' ? "bg-rose-500" :
+                                      "bg-amber-500"
+                                    )} />
+                                    <span className={cn(
+                                      "text-[9px] font-black uppercase tracking-wider",
+                                      lastEntry.status === 'dikembalikan' ? "text-red-700" :
+                                      lastEntry.status === 'disetujui' || lastEntry.status === 'lunas' ? "text-emerald-700" :
+                                      lastEntry.status === 'ditolak' ? "text-rose-700" :
+                                      "text-amber-700"
+                                    )}>
+                                      {lastEntry.status === 'dikembalikan' ? '⚠️ Perlu Revisi' : lastEntry.status}
+                                    </span>
+                                  </div>
+                                  "{lastEntry.catatan || 'Tidak ada catatan tambahan'}"
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Catatan Sebelumnya - Collapsed */}
+                          {olderEntries.length > 0 && (
+                            <details className="group">
+                              <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1.5 outline-none select-none py-1">
+                                <ChevronDown className="w-3.5 h-3.5 group-open:rotate-180 transition-transform text-indigo-500" />
+                                Lihat riwayat sebelumnya ({olderEntries.length})
+                              </summary>
+                              <div className="mt-4 space-y-4 pl-4 border-l-2 border-dashed border-surface-200/80 max-h-[220px] overflow-y-auto custom-scrollbar pt-2 pr-1">
+                                {olderEntries.reverse().map(entry => (
+                                  <div
+                                    key={entry.id_history}
+                                    className="flex gap-3 items-start relative group/item"
+                                  >
+                                    {/* Circle connection on timeline */}
+                                    <div className="absolute -left-[21px] top-3.5 w-2 h-2 rounded-full bg-white border-2 border-surface-300 group-hover/item:border-indigo-500 transition-colors" />
+
+                                    {/* Mini Avatar */}
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-surface-200 to-surface-300 text-[10px] font-black text-ink-600 flex items-center justify-center shrink-0 shadow-sm">
+                                      {entry.username ? entry.username.slice(0, 2).toUpperCase() : 'US'}
+                                    </div>
+
+                                    <div className="flex-1 space-y-1.5">
+                                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[11px] font-black text-ink-700">{entry.username || 'System'}</span>
+                                          <span className="text-[9px] text-ink-400">({entry.role || 'user'})</span>
+                                        </div>
+                                        <span className="text-[9px] text-ink-400 font-medium">
+                                          {new Date(entry.created_at).toLocaleDateString('id-ID')} {new Date(entry.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}
+                                        </span>
+                                      </div>
+                                      <div className="p-3 rounded-2xl bg-white border border-surface-200 shadow-sm text-[11px] text-ink-600 leading-relaxed font-medium relative after:absolute after:top-2.5 after:-left-1.5 after:w-0 after:h-0 after:border-t-6 after:border-t-transparent after:border-r-6 after:border-r-white after:border-b-6 after:border-b-transparent">
+                                        <div className="mb-1 flex items-center gap-1">
+                                          <span className={cn(
+                                            "w-1 h-1 rounded-full",
+                                            entry.status === 'dikembalikan' ? "bg-red-500" :
+                                            entry.status === 'disetujui' || entry.status === 'lunas' ? "bg-emerald-500" :
+                                            entry.status === 'ditolak' ? "bg-rose-500" :
+                                            "bg-amber-500"
+                                          )} />
+                                          <span className="text-[8px] font-bold uppercase tracking-wider text-ink-400">{entry.status}</span>
+                                        </div>
+                                        "{entry.catatan || 'Tidak ada catatan tambahan'}"
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
                 {/* Error */}
                 {error && (
                   <div className="flex items-center gap-2 px-3.5 py-3 rounded-xl bg-red-50 border border-red-100">
@@ -443,6 +610,48 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                         {loading
                           ? <><Loader2 className="w-4 h-4 animate-spin" /> Memproses...</>
                           : <><CheckCircle2 className="w-4 h-4" /> Konfirmasi Setuju</>
+                        }
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mode: kembalikan */}
+                {mode === 'kembalikan' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                      <ArrowUpCircle className="w-4 h-4 text-blue-500" />
+                      <p className="text-xs font-semibold text-blue-700">Kembalikan untuk Revisi</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-ink-600 mb-1.5">
+                        Catatan Revisi <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={catatan}
+                        onChange={e => setCatatan(e.target.value)}
+                        placeholder="Tuliskan hal-hal yang perlu diperbaiki oleh peminjam..."
+                        className="w-full px-3 py-2.5 text-sm border border-surface-300 rounded-xl focus:outline-none focus:border-blue-400 resize-none"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setMode('idle')}
+                        className="flex-1 py-2.5 rounded-xl border border-surface-300 text-sm font-medium text-ink-600 hover:bg-surface-100 transition-colors"
+                      >
+                        Kembali
+                      </button>
+                      <button
+                        onClick={handleReturn}
+                        disabled={loading}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                      >
+                        {loading
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Memproses...</>
+                          : <><ArrowUpCircle className="w-4 h-4" /> Konfirmasi Revisi</>
                         }
                       </button>
                     </div>
@@ -597,20 +806,32 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                 {/* Mode: idle — tombol aksi */}
                 {mode === 'idle' && (
                   <div className="flex gap-2 pt-4">
-                    <button
-                      onClick={() => { setMode('tolak'); setError(null); setCatatan('') }}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" /> Tolak
-                    </button>
-                    <button
-                      onClick={() => { setMode('setuju'); setError(null) }}
-                      disabled={loadingChecklist || !checklist?.semua_syarat_wajib_terpenuhi}
-                      title={!checklist?.semua_syarat_wajib_terpenuhi ? 'Lengkapi syarat wajib terlebih dahulu' : ''}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-300 disabled:text-ink-300"
-                    >
-                      <CheckCircle2 className="w-4 h-4" /> Setujui
-                    </button>
+                    {(can('pinjaman', 'verify') || can('pinjaman', 'approve')) && (
+                      <button
+                        onClick={() => { setMode('kembalikan'); setError(null); setCatatan('') }}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 text-sm font-semibold hover:bg-blue-100 transition-colors"
+                      >
+                        <ArrowUpCircle className="w-4 h-4" /> Kembalikan
+                      </button>
+                    )}
+                    {can('pinjaman', 'reject') && (
+                      <button
+                        onClick={() => { setMode('tolak'); setError(null); setCatatan('') }}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" /> Tolak
+                      </button>
+                    )}
+                    {can('pinjaman', 'approve') && (
+                      <button
+                        onClick={() => { setMode('setuju'); setError(null) }}
+                        disabled={loadingChecklist || !checklist?.semua_syarat_wajib_terpenuhi}
+                        title={!checklist?.semua_syarat_wajib_terpenuhi ? 'Lengkapi syarat wajib terlebih dahulu' : ''}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-300 disabled:text-ink-300"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Setujui
+                      </button>
+                    )}
                   </div>
                 )}
               </>
@@ -724,15 +945,18 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                                 {/* Document Link */}
                                 {hasDocument && (
                                   <div className="mt-3">
-                                    <a 
-                                      href={getFileUrl(d.dokumen_path)} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setActiveDoc(d.dokumen_path)
+                                        setSelectedSyaratId(d.id_pinjaman_syarat)
+                                      }}
                                       className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2a7fc5] hover:text-[#1e5f96] transition-colors bg-white px-3 py-1.5 rounded-lg border border-surface-200 shadow-sm"
                                     >
-                                      <ExternalLink className="w-3.5 h-3.5" />
+                                      <Eye className="w-3.5 h-3.5" />
                                       Lihat Dokumen
-                                    </a>
+                                    </button>
                                   </div>
 
                                 )}
@@ -794,7 +1018,7 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                           </h4>
                           {activeDoc && (
                             <a 
-                              href={getFileUrl(activeDoc)} 
+                              href={base64ToBlobUrl(activeDoc)} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-[10px] font-bold text-accent-600 hover:underline flex items-center gap-1"
@@ -808,13 +1032,13 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                           {activeDoc ? (
                             isImage(activeDoc) ? (
                               <img 
-                                src={getFileUrl(activeDoc)} 
+                                src={base64ToBlobUrl(activeDoc)} 
                                 alt="Pratinjau Dokumen" 
                                 className="max-w-full max-h-full object-contain rounded shadow-lg animate-fade-in"
                               />
                             ) : isPdf(activeDoc) ? (
                               <iframe 
-                                src={`${getFileUrl(activeDoc)}#toolbar=0`} 
+                                src={base64ToBlobUrl(activeDoc)} 
                                 className="w-full h-full rounded shadow-lg"
                                 title="PDF Viewer"
                               />
@@ -823,7 +1047,7 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                                 <AlertCircle className="w-12 h-12 text-ink-200 mx-auto mb-3" />
                                 <p className="text-sm font-semibold text-ink-400">Format file tidak didukung untuk pratinjau</p>
                                 <a 
-                                  href={getFileUrl(activeDoc)} 
+                                  href={base64ToBlobUrl(activeDoc)} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className="mt-4 inline-block px-4 py-2 bg-ink-800 text-white rounded-lg text-xs"

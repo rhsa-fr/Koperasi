@@ -27,8 +27,8 @@ class Anggota(Base):
     tanggal_bergabung = Column(Date, nullable=False)
 
     status = Column(
-        Enum(StatusAnggota, values_callable=lambda obj: [e.value for e in obj]),
-        default=StatusAnggota.AKTIF,
+        String(20),
+        default=StatusAnggota.AKTIF.value,
         index=True,
     )
 

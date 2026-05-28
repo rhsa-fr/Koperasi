@@ -32,6 +32,7 @@ export function useRolesState() {
   const [toast, setToast] = useState<ToastData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<string>('dashboard')
+  const [sidebarLabels, setSidebarLabels] = useState<Record<string, string>>({})
 
   const isReadOnly = selectedRoleId === 1 // ID 1 is Super Admin
 
@@ -56,6 +57,8 @@ export function useRolesState() {
     setError,
     activeTab,
     setActiveTab,
+    sidebarLabels,
+    setSidebarLabels,
     isReadOnly
   }
 }

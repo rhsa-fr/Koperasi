@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class SidebarBase(BaseModel):
     label: str
@@ -10,6 +10,7 @@ class SidebarBase(BaseModel):
     resource: str
     order_weight: int = 0
     is_active: bool = True
+    actions: Optional[List[str]] = []
 
 class SidebarCreate(SidebarBase):
     pass
@@ -22,6 +23,7 @@ class SidebarUpdate(BaseModel):
     resource: Optional[str] = None
     order_weight: Optional[int] = None
     is_active: Optional[bool] = None
+    actions: Optional[List[str]] = None
 
 class SidebarResponse(SidebarBase):
     id_sidebar: int

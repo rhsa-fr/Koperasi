@@ -183,7 +183,7 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     """Handle database errors"""
     # ── DEBUG: tampilkan error detail di terminal ──
     print("\n" + "="*60)
-    print("❌ SQLALCHEMY ERROR CAUGHT")
+    print("SQLALCHEMY ERROR CAUGHT")
     print(f"   Type : {type(exc).__name__}")
     print(f"   Error: {exc}")
     print("   Traceback:")
@@ -206,7 +206,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     """Handle general errors"""
     # ── DEBUG: tampilkan error detail di terminal ──
     print("\n" + "="*60)
-    print("❌ GENERAL ERROR CAUGHT")
+    print("GENERAL ERROR CAUGHT")
     print(f"   Type : {type(exc).__name__}")
     print(f"   Error: {exc}")
     print("   Traceback:")
@@ -237,20 +237,20 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Startup / Shutdown Events
 # ============================================================================
 
-# @app.on_event("startup")
-# async def startup_event():
-#     """Initialize database on startup"""
-#     init_db()
-#     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} is starting...")
-#     print(f"📚 API Docs: http://{settings.HOST}:{settings.PORT}/docs")
-#     print(f"🔧 Environment: {settings.ENVIRONMENT}")
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup"""
+    init_db()
+    print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} is starting...")
+    print(f"📚 API Docs: http://{settings.HOST}:{settings.PORT}/docs")
+    print(f"🔧 Environment: {settings.ENVIRONMENT}")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Close database connection on shutdown"""
     close_db()
-    print(f"👋 {settings.APP_NAME} is shutting down...")
+    print(f"{settings.APP_NAME} is shutting down...")
 
 
 # ============================================================================
@@ -282,7 +282,7 @@ async def health_check():
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
-        print(f"❌ DB HEALTH CHECK FAILED: {e}")
+        print(f"DB HEALTH CHECK FAILED: {e}")
 
     return {
         "status": "healthy",

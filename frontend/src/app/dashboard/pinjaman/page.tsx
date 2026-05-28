@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   User, RefreshCw, Plus, Loader2, AlertCircle,
   ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle,
-  CreditCard, CheckCheck, Search
+  CreditCard, CheckCheck, Search, Eye
 } from 'lucide-react'
 import { api } from '@/lib/axios'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import ModalVerifikasi from './ModalVerifikasi'
 import FormPinjaman from './FormPinjaman'
+import ModalDetailPinjaman from './ModalDetailPinjaman'
 import { Pinjaman, formatRupiah } from './types'
 import Toast, { ToastData } from '@/components/ui/Toast'
 import Skeleton from '@/components/ui/Skeleton'
@@ -35,6 +36,7 @@ const STATUS_CONFIG = {
   disetujui: { label: 'Disetujui', color: 'text-blue-600',    bg: 'bg-blue-50',    icon: CheckCircle2 },
   ditolak:   { label: 'Ditolak',   color: 'text-red-500',     bg: 'bg-red-50',     icon: XCircle      },
   lunas:     { label: 'Lunas',     color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCheck   },
+  dikembalikan: { label: 'Revisi', color: 'text-indigo-600', bg: 'bg-indigo-50',  icon: AlertCircle  },
 } as const
 
 // ============================================================================
@@ -63,17 +65,18 @@ export default function PinjamanPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [counts, setCounts] = useState({ semua: 0, pending: 0, disetujui: 0, ditolak: 0, lunas: 0 })
+  const [counts, setCounts] = useState({ semua: 0, pending: 0, disetujui: 0, ditolak: 0, lunas: 0, dikembalikan: 0 })
 
   // Modal states
   const [showFormPinjaman, setShowFormPinjaman] = useState(false)
+  const [showDetailPinjaman, setShowDetailPinjaman] = useState(false)
   const [selectedPinjaman, setSelectedPinjaman] = useState<Pinjaman | null>(null)
   const [toast, setToast] = useState<ToastData | null>(null)
 
   // ✅ Izin dinamis — mendukung RBAC
   const { user, can } = useAuth()
   const canBuat       = can('pinjaman', 'create')
-  const canVerifikasi = can('pinjaman', 'approve')
+  const canVerifikasi = can('pinjaman', 'verify') || can('pinjaman', 'approve')
 
   const LIMIT = 10
 
@@ -97,12 +100,13 @@ export default function PinjamanPage() {
       setMeta({ total: res.meta.total, page: res.meta.page, total_pages: res.meta.total_pages })
 
       try {
-        const [all, pending, disetujui, ditolak, lunas] = await Promise.all([
+        const [all, pending, disetujui, ditolak, lunas, dikembalikan] = await Promise.all([
           api.get<PaginatedResponse>('/pinjaman?limit=1'),
           api.get<PaginatedResponse>('/pinjaman?limit=1&status=pending'),
           api.get<PaginatedResponse>('/pinjaman?limit=1&status=disetujui'),
           api.get<PaginatedResponse>('/pinjaman?limit=1&status=ditolak'),
           api.get<PaginatedResponse>('/pinjaman?limit=1&status=lunas'),
+          api.get<PaginatedResponse>('/pinjaman?limit=1&status=dikembalikan'),
         ])
         setCounts({
           semua: all.meta.total,
@@ -110,6 +114,7 @@ export default function PinjamanPage() {
           disetujui: disetujui.meta.total,
           ditolak: ditolak.meta.total,
           lunas: lunas.meta.total,
+          dikembalikan: dikembalikan.meta.total,
         })
       } catch { /* ignore */ }
     } catch (err) {
@@ -150,6 +155,7 @@ export default function PinjamanPage() {
     { value: 'disetujui', label: '● Disetujui' },
     { value: 'ditolak',   label: '● Ditolak'   },
     { value: 'lunas',     label: '● Lunas'     },
+    { value: 'dikembalikan', label: '● Revisi'  },
   ]
 
   return (
@@ -253,7 +259,7 @@ export default function PinjamanPage() {
               {[
                 'NO. PINJAMAN', 'ANGGOTA', 'NOMINAL / SISA',
                 'ANGSURAN/BLN', 'PENGAJUAN', 'STATUS',
-                ...(canVerifikasi ? ['KEPUTUSAN'] : [])
+                ...(canVerifikasi || canBuat ? ['AKSI'] : [])
               ].map(h => (
                 <th key={h} className="text-left text-[10px] font-bold text-ink-300 tracking-widest uppercase px-4 py-3 whitespace-nowrap">
                   {h}
@@ -279,12 +285,12 @@ export default function PinjamanPage() {
                   <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                  {canVerifikasi && <td className="px-4 py-3"><Skeleton className="h-8 w-20 rounded-xl" /></td>}
+                  {canVerifikasi || canBuat ? <td className="px-4 py-3"><Skeleton className="h-8 w-20 rounded-xl" /></td> : null}
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={canVerifikasi ? 7 : 6} className="text-center py-16">
+                <td colSpan={canVerifikasi || canBuat ? 7 : 6} className="text-center py-16">
                   <CreditCard className="w-8 h-8 text-ink-200 mx-auto mb-2" />
                   <p className="text-sm text-ink-300">Belum ada data pinjaman</p>
                 </td>
@@ -305,11 +311,19 @@ export default function PinjamanPage() {
                       idx === data.length - 1 && 'border-b-0',
                       canVerifikasi && isPending
                         ? 'hover:bg-amber-50 cursor-pointer'
+                        : p.status === 'dikembalikan' && canBuat
+                        ? 'hover:bg-indigo-50 cursor-pointer'
                         : 'hover:bg-surface-50'
                     )}
                     onClick={() => {
                       // Ketua bisa klik baris pending untuk verifikasi
-                      if (canVerifikasi && isPending) setSelectedPinjaman(p)
+                      if (canVerifikasi && isPending) {
+                        setSelectedPinjaman(p)
+                      } else {
+                        // Selain pending, buka detail
+                        setSelectedPinjaman(p)
+                        setShowDetailPinjaman(true)
+                      }
                     }}
                   >
                     <td className="px-4 py-3 text-xs font-mono text-ink-400 whitespace-nowrap">{p.no_pinjaman}</td>
@@ -341,18 +355,30 @@ export default function PinjamanPage() {
                         <StIcon className="w-3 h-3" />{st.label}
                       </span>
                     </td>
-                    {/* ✅ Kolom keputusan hanya untuk ketua */}
-                    {canVerifikasi && (
+                    {/* ✅ Kolom keputusan/aksi */}
+                    {(canVerifikasi || canBuat) && (
                       <td className="px-4 py-3">
-                        {isPending ? (
+                        {isPending && canVerifikasi ? (
                           <button
                             onClick={e => { e.stopPropagation(); setSelectedPinjaman(p) }}
                             className="h-8 px-3 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all"
                           >
                             Verifikasi
                           </button>
+                        ) : p.status === 'dikembalikan' && canBuat ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); setSelectedPinjaman(p); setShowFormPinjaman(true); }}
+                            className="h-8 px-3 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-all"
+                          >
+                            Edit Revisi
+                          </button>
                         ) : (
-                          <span className="text-xs text-ink-200">—</span>
+                          <button
+                            onClick={e => { e.stopPropagation(); setSelectedPinjaman(p); setShowDetailPinjaman(true); }}
+                            className="h-8 px-3 rounded-xl text-xs font-semibold bg-surface-100 text-ink-600 border border-surface-300 hover:bg-surface-200 transition-all flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" /> Detail
+                          </button>
                         )}
                       </td>
                     )}
@@ -398,21 +424,34 @@ export default function PinjamanPage() {
       {/* ── Modal Form Pengajuan (admin & bendahara) ── */}
       {showFormPinjaman && (
         <FormPinjaman
-          onClose={() => setShowFormPinjaman(false)}
+          initialData={selectedPinjaman}
+          onClose={() => { setShowFormPinjaman(false); setSelectedPinjaman(null); }}
           onSuccess={(result) => {
             setShowFormPinjaman(false)
-            setToast({ type: 'success', message: `Pengajuan pinjaman ${result.no_pinjaman} berhasil diajukan` })
+            setSelectedPinjaman(null)
+            setToast({ type: 'success', message: `Pengajuan pinjaman ${result.no_pinjaman} berhasil diperbarui` })
             fetchData()
           }}
         />
       )}
 
       {/* ── Modal Verifikasi (ketua & admin) ── */}
-      {selectedPinjaman && (
+      {selectedPinjaman && !showFormPinjaman && !showDetailPinjaman && (
         <ModalVerifikasi
           pinjaman={selectedPinjaman}
           onClose={() => setSelectedPinjaman(null)}
           onSuccess={handleVerifikasiSuccess}
+        />
+      )}
+
+      {/* ── Modal Detail ── */}
+      {showDetailPinjaman && selectedPinjaman && (
+        <ModalDetailPinjaman
+          pinjaman={selectedPinjaman}
+          onClose={() => { setShowDetailPinjaman(false); setSelectedPinjaman(null); }}
+          onRevise={canBuat && selectedPinjaman.status === 'dikembalikan' ? () => {
+            setShowFormPinjaman(true);
+          } : undefined}
         />
       )}
     </div>

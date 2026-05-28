@@ -8,6 +8,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.database import SessionLocal, engine
 from app.models.role import MasterRole, MasterMenu, MasterRoleMenu
 from app.models.sidebar import MasterSidebar, MasterRoleSidebar
+from app.models.user import User
+from app.core.security import hash_password
 from app.core.permissions import PERMISSIONS
 from sqlalchemy import text, func
 
@@ -88,6 +90,22 @@ def seed_all():
                         db.add(mapping)
         db.commit()
         print("Sidebar mappings created.")
+
+        print("--- Step 4: Seeding Superadmin User ---")
+        sa_user = db.query(User).filter(User.username == "superadmin").first()
+        if not sa_user:
+            hashed_pw = hash_password("superadmin123")
+            sa_user = User(
+                username="superadmin",
+                password=hashed_pw,
+                role="super_admin",
+                is_active=True
+            )
+            db.add(sa_user)
+            db.commit()
+            print("[OK] Superadmin user created (username: superadmin, password: superadmin123)")
+        else:
+            print("[INFO] Superadmin user already exists.")
 
     except Exception as e:
         print(f"Error during seeding: {e}")

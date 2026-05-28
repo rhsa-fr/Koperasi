@@ -3,12 +3,10 @@
 # ============================================================================
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 from datetime import date, datetime
 from enum import Enum
-
-if TYPE_CHECKING:
-    from app.schemas.syarat_peminjaman import PinjamanSyaratDetailResponse
+from app.schemas.syarat_peminjaman import PinjamanSyaratDetailResponse
 
 
 class StatusPinjaman(str, Enum):
@@ -16,6 +14,7 @@ class StatusPinjaman(str, Enum):
     DISETUJUI = "disetujui"
     DITOLAK = "ditolak"
     LUNAS = "lunas"
+    DIKEMBALIKAN = "dikembalikan"
 
 
 class PinjamanBase(BaseModel):
@@ -38,9 +37,11 @@ class PinjamanCreate(PinjamanBase):
 
 
 class PinjamanUpdate(BaseModel):
+    nominal_pinjaman: Optional[float] = Field(None, gt=0)
     keperluan: Optional[str] = None
     bunga_persen: Optional[float] = Field(None, ge=0, le=100)
     lama_angsuran: Optional[int] = Field(None, gt=0, le=60)
+    catatan_revisi: Optional[str] = None
 
 
 class PinjamanApprove(BaseModel):
@@ -52,6 +53,11 @@ class PinjamanApprove(BaseModel):
 class PinjamanReject(BaseModel):
     catatan_persetujuan: str = Field(..., description="Alasan penolakan")
     tanggal_persetujuan: Optional[date] = Field(None, description="Tanggal penolakan, default hari ini")
+
+
+class PinjamanReturn(BaseModel):
+    catatan_persetujuan: str = Field(..., description="Alasan pengembalian/perlu revisi")
+    tanggal_persetujuan: Optional[date] = Field(None, description="Tanggal pengembalian, default hari ini")
 
 
 class PinjamanInDB(PinjamanBase):
@@ -75,6 +81,19 @@ class PinjamanInDB(PinjamanBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PinjamanHistoryResponse(BaseModel):
+    id_history: int
+    id_pinjaman: int
+    id_user: Optional[int] = None
+    username: Optional[str] = None
+    role: Optional[str] = None
+    status: StatusPinjaman
+    catatan: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class PinjamanResponse(BaseModel):
     id_pinjaman: int
     id_anggota: int
@@ -89,12 +108,19 @@ class PinjamanResponse(BaseModel):
     nominal_angsuran: float
     keperluan: Optional[str] = None
     status: StatusPinjaman
-    tanggal_persetujuan: Optional[date] = None
+    @field_validator('status', mode='before')
+    @classmethod
+    def ensure_status(cls, v):
+        # If status is empty or falsy, default to pending
+        if not v:
+            return StatusPinjaman.PENDING
+        return v
     tanggal_pencairan: Optional[date] = None
     tanggal_lunas: Optional[date] = None
     catatan_persetujuan: Optional[str] = None
     sisa_pinjaman: float
     created_at: datetime
+    history: Optional[List[PinjamanHistoryResponse]] = None
     
     # Informasi syarat
     total_syarat: Optional[int] = Field(0, description="Total syarat yang berlaku")
@@ -112,7 +138,7 @@ class PinjamanDetailResponse(PinjamanResponse):
     angsuran_belum_bayar: Optional[int] = Field(0, description="Jumlah angsuran yang belum dibayar")
     
     # Detail syarat
-    detail_syarat: Optional[List["PinjamanSyaratDetailResponse"]] = Field(None, description="Detail syarat peminjaman")
+    detail_syarat: Optional[List[PinjamanSyaratDetailResponse]] = Field(None, description="Detail syarat peminjaman")
     
     model_config = ConfigDict(from_attributes=True)
 

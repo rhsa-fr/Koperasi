@@ -29,6 +29,10 @@ export const ACTION_LABELS: Record<string, string> = {
   tarik: 'Tarik',
   bayar: 'Bayar',
   verify: 'Verifikasi',
+  approve: 'Setujui',
+  reject: 'Tolak',
+  return: 'Kembalikan',
+  detail: 'Detail',
   manage: 'Kelola'
 }
 

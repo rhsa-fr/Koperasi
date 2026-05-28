@@ -190,6 +190,54 @@ def attach_syarat_to_pinjaman(
     return pinjaman_syarat_list
 
 
+def sync_syarat_pinjaman(
+    db: Session,
+    id_pinjaman: int,
+    nominal_pinjaman: float
+) -> List[PinjamanSyarat]:
+    """
+    Sinkronisasi syarat yang berlaku ketika nominal pinjaman di-update.
+    Menghapus syarat yang tidak berlaku lagi untuk nominal baru.
+    Menambahkan syarat baru yang belum ada untuk nominal baru.
+    Melihat/mempertahankan syarat yang masih berlaku agar dokumen tidak hilang.
+    """
+    # 1. Get syarat yang berlaku untuk nominal baru
+    syarat_list, _ = get_syarat_list(
+        db,
+        is_active=True,
+        nominal_pinjaman=nominal_pinjaman
+    )
+    new_syarat_ids = {s.id_syarat for s in syarat_list}
+    
+    # 2. Get existing syarat untuk pinjaman ini
+    existing_pinjaman_syarat = db.query(PinjamanSyarat).filter(
+        PinjamanSyarat.id_pinjaman == id_pinjaman
+    ).all()
+    existing_syarat_ids = {eps.id_syarat for eps in existing_pinjaman_syarat}
+    
+    # 3. Hapus syarat yang sudah tidak berlaku lagi
+    for eps in existing_pinjaman_syarat:
+        if eps.id_syarat not in new_syarat_ids:
+            db.delete(eps)
+            
+    # 4. Tambah syarat baru yang belum ada
+    for syarat in syarat_list:
+        if syarat.id_syarat not in existing_syarat_ids:
+            new_ps = PinjamanSyarat(
+                id_pinjaman=id_pinjaman,
+                id_syarat=syarat.id_syarat,
+                is_terpenuhi=False
+            )
+            db.add(new_ps)
+            
+    db.commit()
+    
+    # Return updated list
+    return db.query(PinjamanSyarat).filter(
+        PinjamanSyarat.id_pinjaman == id_pinjaman
+    ).all()
+
+
 def get_pinjaman_syarat_by_id(db: Session, id_pinjaman_syarat: int) -> PinjamanSyarat:
     """Get pinjaman syarat by ID"""
     ps = db.query(PinjamanSyarat).filter(

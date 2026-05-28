@@ -82,12 +82,20 @@ class Settings(BaseSettings):
         """
         Generate database URL from components.
         Priority: 
-        1. Vercel Postgres URL (POSTGRES_URL)
-        2. Manual MySQL config
+        1. Direct environment DATABASE_URL (Railway)
+        2. Vercel Postgres URL (POSTGRES_URL)
+        3. Manual MySQL config
         """
         import os
         
-        # 1. Check for Vercel/Neon Postgres URL
+        # 1. Check if DATABASE_URL is defined directly (e.g. Railway)
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            if db_url.startswith("postgres://"):
+                db_url = db_url.replace("postgres://", "postgresql://", 1)
+            return db_url
+            
+        # 2. Check for Vercel/Neon Postgres URL
         # Vercel provides POSTGRES_URL which might start with postgres://
         # SQLAlchemy requires postgresql://
         vercel_db_url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL_UNPOOLED")
@@ -97,7 +105,7 @@ class Settings(BaseSettings):
                 vercel_db_url = vercel_db_url.replace("postgres://", "postgresql://", 1)
             return vercel_db_url
             
-        # 2. Fallback to MySQL
+        # 3. Fallback to MySQL
         return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @property
