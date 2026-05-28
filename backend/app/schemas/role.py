@@ -24,6 +24,9 @@ class RoleResponse(RoleBase):
     created_at: datetime
     updated_at: datetime
 
+    class Config:
+        from_attributes = True
+
 
 class MenuBase(BaseModel):
     menu: str
@@ -34,6 +37,9 @@ class MenuBase(BaseModel):
 class MenuResponse(MenuBase):
     id_permission: int
 
+    class Config:
+        from_attributes = True
+
 
 class RoleMenuBase(BaseModel):
     role_id: int
@@ -42,6 +48,9 @@ class RoleMenuBase(BaseModel):
 
 class RoleMenuResponse(RoleMenuBase):
     id_role_permission: int
+
+    class Config:
+        from_attributes = True
 
 
 class AuditLogBase(BaseModel):
@@ -57,3 +66,6 @@ class AuditLogBase(BaseModel):
 class AuditLogResponse(AuditLogBase):
     id_audit: int
     timestamp: datetime
+
+    class Config:
+        from_attributes = True

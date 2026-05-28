@@ -82,7 +82,7 @@ def update_role_permissions(
     return {"message": "Permissions updated successfully"}
 
 
-@router.post("/", response_model=RoleResponse)
+@router.post("", response_model=RoleResponse)
 def create_role(
     role_data: RoleCreate,
     db: Session = Depends(get_db),
@@ -114,7 +114,7 @@ def create_role(
     return new_role
 
 
-@router.get("/", response_model=List[RoleResponse])
+@router.get("", response_model=List[RoleResponse])
 def get_roles(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)

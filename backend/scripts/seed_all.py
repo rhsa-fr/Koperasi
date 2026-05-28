@@ -9,6 +9,19 @@ from app.database import SessionLocal, engine
 from app.models.role import MasterRole, MasterMenu, MasterRoleMenu
 from app.models.sidebar import MasterSidebar, MasterRoleSidebar
 from app.models.user import User
+# Register all models to prevent Mapper relationship resolution errors
+from app.models import (
+    anggota,
+    profil_anggota,
+    jenis_simpanan,
+    simpanan,
+    pinjaman,
+    angsuran,
+    syarat_peminjaman,
+    pinjaman_syarat,
+    pinjaman_history,
+    setting,
+)
 from app.core.security import hash_password
 from app.core.permissions import PERMISSIONS
 from sqlalchemy import text, func
