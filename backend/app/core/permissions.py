@@ -227,21 +227,27 @@ def get_current_user(
 class PermissionChecker:
     """
     Dependency class to check if user has specific permission.
+    Supports checking a single action or any action in a list (OR logic).
     """
-    def __init__(self, resource: str, action: str):
+    def __init__(self, resource: str, action: str | list[str]):
         self.resource = resource
         self.action = action
     
     def __call__(self, current_user: dict = Depends(get_current_user)):
-        if not has_permission(current_user, self.resource, self.action):
+        actions = [self.action] if isinstance(self.action, str) else self.action
+        
+        has_any = any(has_permission(current_user, self.resource, act) for act in actions)
+        
+        if not has_any:
+            actions_str = ", ".join(actions)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Izin ditolak. Role '{current_user['role']}' tidak memiliki akses '{self.action}' pada '{self.resource}'",
+                detail=f"Izin ditolak. Role '{current_user['role']}' tidak memiliki akses [{actions_str}] pada '{self.resource}'",
             )
         return current_user
 
 
-def require_permission(resource: str, action: str):
+def require_permission(resource: str, action: str | list[str]):
     """
     Factory function for PermissionChecker.
     """

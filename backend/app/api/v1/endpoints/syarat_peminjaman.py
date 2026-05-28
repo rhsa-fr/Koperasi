@@ -152,7 +152,7 @@ def update_pinjaman_syarat(
 def verify_pinjaman_syarat(
     id_pinjaman_syarat: int,
     data: PinjamanSyaratVerify,
-    current_user: dict = Depends(require_permission("pinjaman", "approve")),
+    current_user: dict = Depends(require_permission("pinjaman", ["verify", "approve"])),
     db: Session = Depends(get_db)
 ):
     """

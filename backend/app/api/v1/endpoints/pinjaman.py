@@ -271,7 +271,7 @@ def reject_pinjaman(
 def return_pinjaman(
     id_pinjaman: int,
     data: PinjamanReturn,
-    current_user: dict = Depends(require_permission("pinjaman", "verify")),
+    current_user: dict = Depends(require_permission("pinjaman", ["verify", "approve"])),
     db: Session = Depends(get_db)
 ):
     """Return pinjaman for revision"""
