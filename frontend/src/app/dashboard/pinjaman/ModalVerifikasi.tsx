@@ -115,6 +115,22 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
   // Pratinjau Dokumen
   const [activeDoc, setActiveDoc]               = useState<string | null>(null)
   const [selectedSyaratId, setSelectedSyaratId] = useState<number | null>(null)
+  const [activeBlobUrl, setActiveBlobUrl]       = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!activeDoc) {
+      setActiveBlobUrl(null)
+      return
+    }
+    const url = base64ToBlobUrl(activeDoc)
+    setActiveBlobUrl(url)
+
+    return () => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [activeDoc])
 
   // Set default active doc jika ada
   useEffect(() => {
@@ -1016,9 +1032,9 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                             <FileText className="w-4 h-4 text-ink-400" />
                             Pratinjau Dokumen
                           </h4>
-                          {activeDoc && (
+                          {activeDoc && activeBlobUrl && (
                             <a 
-                              href={base64ToBlobUrl(activeDoc)} 
+                              href={activeBlobUrl} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-[10px] font-bold text-accent-600 hover:underline flex items-center gap-1"
@@ -1029,16 +1045,16 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                         </div>
                         
                         <div className="flex-1 overflow-auto bg-surface-200/50 flex items-center justify-center p-4">
-                          {activeDoc ? (
+                          {activeDoc && activeBlobUrl ? (
                             isImage(activeDoc) ? (
                               <img 
-                                src={base64ToBlobUrl(activeDoc)} 
+                                src={activeBlobUrl} 
                                 alt="Pratinjau Dokumen" 
                                 className="max-w-full max-h-full object-contain rounded shadow-lg animate-fade-in"
                               />
                             ) : isPdf(activeDoc) ? (
                               <iframe 
-                                src={base64ToBlobUrl(activeDoc)} 
+                                src={activeBlobUrl} 
                                 className="w-full h-full rounded shadow-lg"
                                 title="PDF Viewer"
                               />
@@ -1047,7 +1063,7 @@ export default function ModalVerifikasi({ pinjaman, onClose, onSuccess }: Props)
                                 <AlertCircle className="w-12 h-12 text-ink-200 mx-auto mb-3" />
                                 <p className="text-sm font-semibold text-ink-400">Format file tidak didukung untuk pratinjau</p>
                                 <a 
-                                  href={base64ToBlobUrl(activeDoc)} 
+                                  href={activeBlobUrl} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className="mt-4 inline-block px-4 py-2 bg-ink-800 text-white rounded-lg text-xs"
