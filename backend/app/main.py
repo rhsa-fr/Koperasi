@@ -240,6 +240,18 @@ async def general_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
+    db_url = settings.DATABASE_URL
+    masked_url = db_url
+    if "://" in db_url and "@" in db_url:
+        try:
+            proto, rest = db_url.split("://", 1)
+            creds, host = rest.split("@", 1)
+            if ":" in creds:
+                user, pw = creds.split(":", 1)
+                masked_url = f"{proto}://{user}:*****@{host}"
+        except Exception:
+            pass
+    print(f"Connecting to database: {masked_url}")
     init_db()
     print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} is starting...")
     print(f"📚 API Docs: http://{settings.HOST}:{settings.PORT}/docs")
